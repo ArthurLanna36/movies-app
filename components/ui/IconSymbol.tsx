@@ -16,6 +16,7 @@ type IconSymbolName = keyof typeof MAPPING;
 const MAPPING = {
   'house.fill': 'home',
   'chevron.right': 'chevron-right',
+  'star.fill': 'star', // Added star mapping
 } as IconMapping;
 
 /**
@@ -33,7 +34,7 @@ export function IconSymbol({
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight;
+  weight?: SymbolWeight; // Weight is used by iOS, MaterialIcons might not support all weights directly
 }) {
   return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
 }

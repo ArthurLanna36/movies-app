@@ -1,69 +1,170 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons'; // Alterado para FontAwesome
+import { useState } from 'react';
+import { Button, Text as RNText, StyleSheet, View } from 'react-native';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Svg, { Circle, G, Text as SvgText } from 'react-native-svg';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const WHEEL_SIZE = 325; 
+const NUMBERS = Array.from({ length: 10 }, (_, i) => i + 1); 
+const SEGMENT_ANGLE_DEG = 360 / NUMBERS.length; 
+const ITEM_CIRCLE_RADIUS = 30; // Mantido em 30
+const ITEMS_ORBIT_RADIUS = WHEEL_SIZE / 2 - ITEM_CIRCLE_RADIUS - 25; 
+
 
 export default function HomeScreen() {
+  const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
+  const rotation = useSharedValue(0); 
+  const [isSpinning, setIsSpinning] = useState(false);
+
+  const spinWheel = () => {
+    if (isSpinning) return;
+
+    setIsSpinning(true);
+    setSelectedNumber(null); 
+
+    const additionalRandomSpins = Math.floor(Math.random() * 2) + 3; 
+    const winningSegmentIndex = Math.floor(Math.random() * NUMBERS.length); 
+    const winningNumber = NUMBERS[winningSegmentIndex];
+    
+    const angleOfWinningCircleCenterDeg = winningSegmentIndex * SEGMENT_ANGLE_DEG;
+    const desiredBaseRotationForAlignment = -angleOfWinningCircleCenterDeg;
+    
+    let numTotalSpinsForCalculation = Math.floor(rotation.value / 360) + additionalRandomSpins;
+    let finalTargetAngle = (numTotalSpinsForCalculation * 360) + desiredBaseRotationForAlignment;
+    
+    const minNewVisualSpins = 2; 
+    while (finalTargetAngle <= rotation.value + 360 * (minNewVisualSpins - 0.5)) { 
+      numTotalSpinsForCalculation++;
+      finalTargetAngle = (numTotalSpinsForCalculation * 360) + desiredBaseRotationForAlignment;
+    }
+    
+    rotation.value = withTiming(
+      finalTargetAngle,
+      {
+        duration: 4000, 
+        easing: Easing.out(Easing.cubic), 
+      },
+      (finished) => {
+        if (finished) {
+          runOnJS(setSelectedNumber)(winningNumber);
+          runOnJS(setIsSpinning)(false);
+          
+          let normalizedEffectiveRotation = finalTargetAngle % 360;
+          if (normalizedEffectiveRotation < 0) {
+            normalizedEffectiveRotation += 360;
+          }
+          rotation.value = normalizedEffectiveRotation; 
+        } else {
+          runOnJS(setIsSpinning)(false);
+        }
+      }
+    );
+  };
+
+  const animatedWheelStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ rotate: `${rotation.value}deg` }],
+    };
+  });
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <RNText style={styles.pageTitle}>Roleta Numérica</RNText>
+
+      <View style={styles.wheelArea}>
+        <View style={styles.pointerContainer}>
+          {/* Usando FontAwesome no lugar de BiSolidDownArrow */}
+          <FontAwesome name="caret-down" size={40} color="#000000" /> 
+        </View>
+        
+        <Animated.View style={[styles.wheelGraphicContainer, animatedWheelStyle]}>
+          <Svg height={WHEEL_SIZE} width={WHEEL_SIZE} viewBox={`0 0 ${WHEEL_SIZE} ${WHEEL_SIZE}`}>
+            <G x={WHEEL_SIZE / 2} y={WHEEL_SIZE / 2}>
+              <Circle r={WHEEL_SIZE / 2 - 5} fill="hsl(210, 30%, 90%)" stroke="hsl(210, 50%, 70%)" strokeWidth="2" />
+              
+              {NUMBERS.map((number, index) => {
+                const itemAngleRad = index * (2 * Math.PI / NUMBERS.length) - (Math.PI / 2);
+                const itemCenterX = ITEMS_ORBIT_RADIUS * Math.cos(itemAngleRad);
+                const itemCenterY = ITEMS_ORBIT_RADIUS * Math.sin(itemAngleRad);
+
+                return (
+                  <G key={`item-circle-${number}`} x={itemCenterX} y={itemCenterY}>
+                    <Circle 
+                      r={ITEM_CIRCLE_RADIUS} 
+                      fill="hsl(210, 80%, 70%)" 
+                      stroke="hsl(210, 90%, 40%)"
+                      strokeWidth="2"
+                    />
+                    <SvgText
+                      x={0} 
+                      y={0} 
+                      fontSize={Math.max(12, ITEM_CIRCLE_RADIUS * 0.55)} 
+                      fontWeight="bold"
+                      fill="#fff"
+                      textAnchor="middle"
+                      alignmentBaseline="central"
+                      transform={`rotate(${(itemAngleRad + Math.PI / 2) * (180 / Math.PI)})`}
+                    >
+                      {number}
+                    </SvgText>
+                  </G>
+                );
+              })}
+            </G>
+          </Svg>
+        </Animated.View>
+      </View>
+
+      <Button
+        title={isSpinning ? "Girando..." : "Girar a Roleta"}
+        onPress={spinWheel}
+        disabled={isSpinning}
+        color="hsl(210, 90%, 50%)"
+      />
+      {selectedNumber !== null && (
+        <RNText style={styles.resultText}>Número Sorteado: {selectedNumber}</RNText>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#E0F2F7', 
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  pageTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#0D47A1', 
+    marginBottom: 40,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  wheelArea: {
+    width: WHEEL_SIZE, 
+    height: WHEEL_SIZE + 30, 
+    alignItems: 'center',
+    justifyContent: 'flex-start', 
+    position: 'relative',
+    marginBottom: 40,
+  },
+  pointerContainer: { 
     position: 'absolute',
+    top: 0, // Ajuste fino da posição vertical do ponteiro, se necessário
+    zIndex: 1, 
+    alignSelf: 'center',
+  },
+  wheelGraphicContainer: {
+    width: WHEEL_SIZE,
+    height: WHEEL_SIZE,
+    position: 'absolute',
+    top: 30, // Garante espaço para o ponteiro acima da roleta
+  },
+  resultText: {
+    fontSize: 24,
+    color: '#2E7D32', 
+    marginTop: 30,
+    fontWeight: 'bold',
   },
 });
