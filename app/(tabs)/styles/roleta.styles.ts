@@ -1,5 +1,4 @@
-// app/(tabs)/index.styles.ts
-import { WHEEL_SIZE } from '@/constants/GameSettings'; // Mantenha a importação se usada nos estilos
+import { WHEEL_SIZE } from '@/constants/GameSettings'; //
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -7,19 +6,19 @@ export const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#E0F2F7',
+    // backgroundColor removido, será aplicado dinamicamente
   },
   container: {
     width: '100%',
-    maxWidth: 500, // Limita a largura em telas maiores
+    maxWidth: 500,
     alignItems: 'center',
     paddingVertical: 20,
     paddingHorizontal: 15,
   },
   pageTitle: {
-    fontSize: 26,
+    fontSize: 40,
     fontWeight: 'bold',
-    color: '#0D47A1',
+    // color removida
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -30,12 +29,12 @@ export const styles = StyleSheet.create({
   },
   textInput: {
     height: 45,
-    borderColor: '#0D47A1',
+    // borderColor removida
     borderWidth: 1,
     marginBottom: 10,
     paddingHorizontal: 10,
     borderRadius: 5,
-    backgroundColor: '#fff',
+    fontSize: 20
   },
   wheelArea: {
     width: WHEEL_SIZE,
@@ -60,9 +59,8 @@ export const styles = StyleSheet.create({
     maxWidth: 250,
     marginTop: 10,
   },
-  resultText: {
-    fontSize: 18,
-    color: '#2E7D32',
+  resultText: { // A cor será aplicada por ThemedText
+    fontSize: 30,
     marginTop: 15,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -71,21 +69,18 @@ export const styles = StyleSheet.create({
     marginVertical: 20,
     alignItems: 'center',
   },
-  loadingText: {
+  loadingText: { // A cor será aplicada por ThemedText
     marginTop: 8,
     fontSize: 14,
-    color: '#0D47A1',
   },
-  errorText: {
-    color: '#D32F2F',
+  errorText: { // A cor pode ser condicional no componente ou ThemedText
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 10,
     marginTop: 5,
   },
-  emptyWheelText: {
+  emptyWheelText: { // A cor será aplicada por ThemedText
     fontSize: 16,
-    color: '#555',
     marginVertical: 30,
     textAlign: 'center',
   },

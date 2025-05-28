@@ -1,67 +1,51 @@
 import {
   createMaterialTopTabNavigator
 } from '@react-navigation/material-top-tabs';
-import { withLayoutContext } from 'expo-router'; // Manter Stack se for usar para options de header globais
+import { withLayoutContext } from 'expo-router';
 
-// Seus outros imports
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useTheme } from '@/context/ThemeContext';
 
-// Defina seu ParamList para as abas.
-// Mesmo que só tenha 'index', é bom para tipagem.
+// Atualize o ParamList se você quiser tipagem estrita para a rota "roleta"
 export type TopTabsParamList = {
-  index: undefined; // A tela 'index' não espera parâmetros
+  roleta: undefined; // <<< ATUALIZADO DE 'index' PARA 'roleta'
   // Adicione outras telas aqui se necessário, ex:
   // settings: { userId: string };
 };
 
-const { Navigator: TopTabsMaterialNavigator, Screen: TopTabsMaterialScreen } =
+const { Navigator: TopTabsMaterialNavigator } =
   createMaterialTopTabNavigator<TopTabsParamList>();
 
-// Tentar sem especificar os genéricos diretamente no withLayoutContext,
-// deixando a inferência de tipos do Navigator tipado acima funcionar.
-// Se isso ainda der erro sobre "4 type arguments", a API do withLayoutContext na sua versão
-// pode ser mais estrita.
 export const MaterialTopTabs = withLayoutContext(TopTabsMaterialNavigator);
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  // Opções para o Stack que envolve este layout de abas, se você quiser um título global ACIMA das abas.
-  // Se não precisar de um título global aqui, pode remover este <Stack.Screen />.
-  // Este Stack.Screen refere-se ao Stack definido em app/_layout.tsx.
-  // Se você quiser que o título apareça na barra de app principal (acima das abas):
-  // <Stack.Screen options={{ title: 'Roleta App' }} />
+  const { theme } = useTheme();
 
   return (
     <>
-      {/* Se você quer um título específico para este conjunto de abas,
-          mas que NÃO seja parte da barra de abas em si, configure no Stack.Screen do _layout.tsx pai.
-          Exemplo em app/_layout.tsx (ou onde o Stack que contém '(tabs)' está):
-          <Stack.Screen name="(tabs)" options={{ title: 'Minha Roleta' }} />
-      */}
       <MaterialTopTabs
-        initialRouteName="index"
+        initialRouteName="roleta" // <<< ATUALIZADO DE 'index' PARA 'roleta'
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-          tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+          tabBarActiveTintColor: Colors[theme].tint,
+          tabBarInactiveTintColor: Colors[theme].tabIconDefault,
           tabBarStyle: {
-            backgroundColor: Colors[colorScheme ?? 'light'].background,
-            // paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0, // Para Android, se necessário
+            backgroundColor: Colors[theme].background,
           },
           tabBarIndicatorStyle: {
-            backgroundColor: Colors[colorScheme ?? 'light'].tint,
+            backgroundColor: Colors[theme].tint,
           },
-          // tabBarShowIcon: true, // Para mostrar ícones, se desejado
-          // tabBarShowLabel: true, // Para mostrar labels (padrão é true)
+          tabBarLabelStyle: {
+            fontFamily: 'GlassAntiqua-Regular', // Ou a fonte que estiver usando
+            fontSize: 16, // Ajuste conforme necessário
+          },
         }}
       >
-        <MaterialTopTabs.Screen // Pode usar TopTabsMaterialScreen também, mas .Screen do exportado deve funcionar
-          name="index"
+        <MaterialTopTabs.Screen
+          name="roleta" // <<< ATUALIZADO DE 'index' PARA 'roleta'
           options={{
-            tabBarLabel: 'Roleta',
-            tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => ( // Tipagem explícita aqui
+            tabBarLabel: 'Roleta', // O texto que aparece na aba
+            tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
               <IconSymbol size={focused ? 22 : 18} name="star.fill" color={color} />
             ),
           }}
@@ -69,11 +53,11 @@ export default function TabLayout() {
         {/* Exemplo de outra aba, se tivesse:
         <MaterialTopTabs.Screen
           name="settings"
-          component={SettingsScreenComponent} // Você precisaria criar este componente
+          // component={SettingsScreenComponent} // Você precisaria criar este componente
           options={{
             tabBarLabel: 'Config',
             tabBarIcon: ({ color, focused }) => (
-              <IconSymbol size={focused ? 22 : 18} name="gear" color={color} /> // Supondo um ícone 'gear'
+              <IconSymbol size={focused ? 22 : 18} name="gear" color={color} /> 
             ),
           }}
         />

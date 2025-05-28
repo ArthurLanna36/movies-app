@@ -1,6 +1,5 @@
-import { StyleSheet, Text, type TextProps } from 'react-native';
-
 import { useThemeColor } from '@/hooks/useThemeColor';
+import { StyleSheet, Text, type TextProps } from 'react-native';
 
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
@@ -35,26 +34,32 @@ export function ThemedText({
 
 const styles = StyleSheet.create({
   default: {
+    fontFamily: 'GlassAntiqua-Inline',
     fontSize: 16,
     lineHeight: 24,
   },
   defaultSemiBold: {
+    fontFamily: 'GlassAntiqua-Inline',
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '600',
+    // fontWeight: '600', // GlassAntiqua-Inline é uma fonte display, fontWeight pode não ter muito efeito ou o desejado
   },
   title: {
+    fontFamily: 'GlassAntiqua-Inline',
     fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    // fontWeight: 'bold', // Como acima
+    lineHeight: 38, // Ajustar lineHeight para fontes display
   },
   subtitle: {
+    fontFamily: 'GlassAntiqua-Inline',
     fontSize: 20,
-    fontWeight: 'bold',
+    // fontWeight: 'bold', // Como acima
+    lineHeight: 28, // Ajustar lineHeight
   },
   link: {
+    fontFamily: 'GlassAntiqua-Inline',
     lineHeight: 30,
     fontSize: 16,
-    color: '#0a7ea4',
+    color: '#0a7ea4', // Cor do link pode ser mantida ou também tematizada se desejar
   },
 });
