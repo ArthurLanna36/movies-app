@@ -48,16 +48,14 @@ export const loadWheelMoviesFromFirestore = async (): Promise<Movie[]> => {
  * (Poderia ser implementado removendo o documento ou definindo o array movies como vazio)
  */
 export const clearWheelMoviesInFirestore = async (): Promise<void> => {
+    console.log("fireStoreService: clearWheelMoviesInFirestore iniciada."); // NOVO LOG
     try {
         const wheelDocRef = doc(db, "userRoulettes", USER_DEVICE_ID);
-        // Opção 1: Remover o documento inteiro (se o usuário não tiver outras configurações de roleta)
-        // await deleteDoc(wheelDocRef);
-
-        // Opção 2: Apenas limpar a lista de filmes dentro do documento
+        console.log("fireStoreService: Documento de referência:", wheelDocRef.path); // NOVO LOG
         await setDoc(wheelDocRef, { movies: [], lastUpdated: new Date() }, { merge: true });
-        console.log("Lista da roleta limpa no Firestore!");
+        console.log("Lista da roleta limpa no Firestore!"); // Este log é importante
     } catch (error) {
-        console.error("Erro ao limpar lista da roleta no Firestore:", error);
+        console.error("Erro ao limpar lista da roleta no Firestore:", error); // Verifique este erro
         throw error;
     }
 };

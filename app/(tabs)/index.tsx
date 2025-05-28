@@ -10,15 +10,15 @@ import { useWheelItemsManager } from '@/hooks/useWheelItemsManager';
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  Alert, // Mantenha para nativo
   Button,
-  // StyleSheet, // Removido, pois os estilos vêm de outro arquivo
+  Platform,
   Text as RNText,
   ScrollView,
   TextInput,
   View,
 } from 'react-native';
-import { styles } from './index.styles'; // Importa os estilos do novo arquivo
+import { styles } from './styles/index.styles'; // Importa os estilos do novo arquivo
 
 export default function HomeScreen() {
   const {
@@ -57,17 +57,29 @@ export default function HomeScreen() {
   };
 
   const handleClearWheel = async () => {
+  const performClear = async () => {
+    console.log("Ação de limpar confirmada.");
+    await clearWheel();
+    console.log("Função clearWheel (do hook) concluída.");
+  };
+
+  if (Platform.OS === 'web') {
+    if (window.confirm("Limpar Roleta?\nTem certeza que deseja remover todos os filmes da roleta?")) {
+      performClear();
+    } else {
+      console.log("Limpeza cancelada pelo usuário na web.");
+    }
+  } else {
     Alert.alert(
       "Limpar Roleta",
       "Tem certeza que deseja remover todos os filmes da roleta?",
       [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Limpar", style: "destructive", onPress: async () => {
-            await clearWheel();
-        }}
+        { text: "Cancelar", style: "cancel", onPress: () => console.log("Limpeza cancelada pelo usuário.") },
+        { text: "Limpar", style: "destructive", onPress: performClear }
       ]
     );
-  };
+  }
+};
 
   if (isLoadingItems) {
     return (
@@ -119,6 +131,9 @@ export default function HomeScreen() {
         Adicione filmes à roleta para começar!
       </RNText>
     );
+  } else {
+    // Fallback para garantir que wheelSection sempre tenha um valor JSX válido ou null
+    wheelSection = null; // Ou <View /> se preferir um placeholder visível
   }
 
   return (

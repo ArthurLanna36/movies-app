@@ -111,19 +111,23 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
   }, [wheelMovies]); // Adicionado wheelMovies como dependência
 
   const clearWheel = useCallback(async () => {
-    setIsSavingItems(true); // Indica que estamos fazendo uma operação de "salvamento" (limpeza)
-    setErrorSavingItems(null);
-    try {
-      await clearWheelMoviesInFirestore(); // Limpa no Firestore
-      setWheelMovies([]); // Limpa o estado local
-    } catch (e) {
-      console.error("Erro ao limpar a roleta:", e);
-      setErrorSavingItems(e instanceof Error ? e : new Error('Falha ao limpar a roleta.'));
-      Alert.alert("Erro", "Não foi possível limpar a roleta no servidor.");
-    } finally {
-      setIsSavingItems(false);
-    }
-  }, []);
+  console.log("useWheelItemsManager: clearWheel iniciada."); // NOVO LOG
+  setIsSavingItems(true);
+  setErrorSavingItems(null);
+  try {
+    console.log("useWheelItemsManager: Chamando clearWheelMoviesInFirestore..."); // NOVO LOG
+    await clearWheelMoviesInFirestore();
+    console.log("useWheelItemsManager: clearWheelMoviesInFirestore concluída. Chamando setWheelMovies([])."); // NOVO LOG
+    setWheelMovies([]);
+  } catch (e) {
+    console.error("useWheelItemsManager: Erro em clearWheel:", e); // NOVO LOG
+    setErrorSavingItems(e instanceof Error ? e : new Error('Falha ao limpar a roleta.'));
+    Alert.alert("Erro", "Não foi possível limpar a roleta no servidor.");
+  } finally {
+    setIsSavingItems(false);
+    console.log("useWheelItemsManager: clearWheel finalizada."); // NOVO LOG
+  }
+}, []);
 
   return {
     wheelMovies,
