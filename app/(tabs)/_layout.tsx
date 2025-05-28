@@ -25,7 +25,7 @@ export default function TabLayout() {
   return (
     <>
       <MaterialTopTabs
-        initialRouteName="index" // <<< ATUALIZADO DE 'index' PARA 'roleta'
+        initialRouteName="index"
         screenOptions={{
           tabBarActiveTintColor: Colors[theme].tint,
           tabBarInactiveTintColor: Colors[theme].tabIconDefault,
@@ -36,32 +36,37 @@ export default function TabLayout() {
             backgroundColor: Colors[theme].tint,
           },
           tabBarLabelStyle: {
-            fontFamily: 'GlassAntiqua-Regular', // Ou a fonte que estiver usando
-            fontSize: 16, // Ajuste conforme necessário
+            fontFamily: 'GlassAntiqua-Regular',
+            fontSize: 25, // Seu tamanho ajustado
+            // textTransform: 'none', // Para evitar que o texto fique em maiúsculas se for o padrão
           },
+          // NOVO: Adicionar tabBarItemStyle
+          tabBarItemStyle: {
+            // flexDirection: 'row', // MaterialTopTabs geralmente já é row por padrão para ícone e label juntos
+            alignItems: 'center', // Ajuda a centralizar o conteúdo (ícone + texto)
+            justifyContent: 'center',
+            paddingVertical: 2, // Adiciona um pouco de padding vertical dentro de cada item da aba
+            // paddingHorizontal: 5, // Pode adicionar padding horizontal também se necessário
+          },
+          //  tabBarIconStyle: { // Pode não ter o efeito desejado de espaçamento com o texto
+          //    marginRight: 0, // Tentar zerar ou ajustar margens padrões se houver
+          //  }
         }}
       >
         <MaterialTopTabs.Screen
-          name="index" // <<< ATUALIZADO DE 'index' PARA 'roleta'
+          name="index"
           options={{
-            tabBarLabel: 'index', // O texto que aparece na aba
+            tabBarLabel: 'Roleta',
             tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
-              <IconSymbol size={focused ? 22 : 18} name="star.fill" color={color} />
+              <IconSymbol
+                size={focused ? 28 : 24} // Seu tamanho ajustado
+                name="clover.fill"
+                color={color}
+                style={{ marginRight: 5 }} // Adiciona uma margem à direita do ícone
+              />
             ),
           }}
         />
-        {/* Exemplo de outra aba, se tivesse:
-        <MaterialTopTabs.Screen
-          name="settings"
-          // component={SettingsScreenComponent} // Você precisaria criar este componente
-          options={{
-            tabBarLabel: 'Config',
-            tabBarIcon: ({ color, focused }) => (
-              <IconSymbol size={focused ? 22 : 18} name="gear" color={color} /> 
-            ),
-          }}
-        />
-        */}
       </MaterialTopTabs>
     </>
   );
