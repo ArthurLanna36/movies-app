@@ -1,17 +1,12 @@
 // constants/MovieData.ts
 export interface Movie {
-  id: string;
+  id: string; // Pode ser o ID do TMDB
   title: string;
   posterUrl: string;
-  // Você pode adicionar outros campos aqui no futuro, como:
-  // overview?: string;
-  // releaseDate?: string;
-  // voteAverage?: number;
+  overview?: string; // Adicionado para o futuro
+  // Outros campos relevantes do TMDB que você queira guardar
 }
 
-// Filmes placeholder para desenvolvimento inicial
-export const INITIAL_MOVIES: Movie[] = Array.from({ length: 10 }, (_, i) => ({
-  id: `${i + 1}`,
-  title: `Filme Placeholder ${i + 1}`,
-  posterUrl: `https://via.placeholder.com/200x300?text=Filme+${i + 1}`,
-}));
+// INITIAL_MOVIES não é mais necessário para o funcionamento principal,
+// mas pode ser mantido para testes ou como um fallback muito básico se desejar.
+// export const INITIAL_MOVIES: Movie[] = [ ... ];

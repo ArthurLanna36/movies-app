@@ -1,62 +1,64 @@
 // hooks/useMovieData.ts
 import { INITIAL_MOVIES, Movie } from '@/constants/MovieData';
+import { fetchPopularMovies } from '@/services/tmdbService'; // Importe o serviço real
 import { useCallback, useEffect, useState } from 'react';
-// Para usar o serviço real, descomente a linha abaixo e a chamada no loadMovies
-// import { fetchPopularMovies } from '@/services/tmdbService';
 
 interface UseMovieDataReturn {
   movies: Movie[];
   isLoading: boolean;
   error: Error | null;
-  loadMovies: (page?: number) => Promise<void>;
+  refreshMovies: () => Promise<void>; // Renomeado para clareza, ou pode ser loadNextPage, etc.
+  currentPage: number;
 }
 
-const MAX_MOVIES_FOR_WHEEL = 10; // Defina quantos filmes você quer na roleta
+const MAX_MOVIES_FOR_WHEEL = 10; // Quantos filmes você quer na roleta
 
-export function useMovieData(initialLoad: boolean = true, initialPage: number = 1): UseMovieDataReturn {
+export function useMovieData(initialLoad: boolean = true): UseMovieDataReturn {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(initialPage);
+  const [currentPage, setCurrentPage] = useState<number>(1); // Para buscar diferentes páginas de populares
 
-  const loadMovies = useCallback(async (pageToLoad: number = currentPage) => {
+  const loadMoviesInternal = useCallback(async (pageToLoad: number) => {
     setIsLoading(true);
     setError(null);
     try {
-      // ---- Para usar dados reais da API (descomente quando o tmdbService estiver pronto) ----
-      // const fetchedMovies = await fetchPopularMovies(pageToLoad);
-      // if (fetchedMovies.length === 0 && pageToLoad === 1) {
-      //   // Fallback para dados iniciais se a API não retornar nada na primeira página
-      //   console.warn("API não retornou filmes, usando placeholders.");
-      //   setMovies(INITIAL_MOVIES.slice(0, MAX_MOVIES_FOR_WHEEL));
-      // } else {
-      //   setMovies(fetchedMovies.slice(0, MAX_MOVIES_FOR_WHEEL));
-      // }
-      // ------------------------------------------------------------------------------------
-
-      // ---- Para usar dados placeholder enquanto desenvolve (comente ou remova ao usar API) ----
-      console.log("Usando filmes placeholder (useMovieData)");
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay da API
-      setMovies(INITIAL_MOVIES.slice(0, MAX_MOVIES_FOR_WHEEL));
-      // ------------------------------------------------------------------------------------
-
-      if (pageToLoad !== currentPage) {
-        setCurrentPage(pageToLoad);
+      const fetchedMovies = await fetchPopularMovies(pageToLoad);
+      if (fetchedMovies.length > 0) {
+        // Para a roleta, normalmente queremos um conjunto novo a cada "refresh"
+        // Se quisesse paginação infinita para uma lista, seria setMovies(prev => [...prev, ...fetchedMovies]);
+        setMovies(fetchedMovies.slice(0, MAX_MOVIES_FOR_WHEEL));
+      } else if (pageToLoad === 1) {
+        // Se a primeira página não retornar nada, pode ser um problema com a API ou chave
+        console.warn("Nenhum filme retornado pela API na primeira página. Verifique a chave ou o serviço.");
+        setMovies(INITIAL_MOVIES.slice(0, MAX_MOVIES_FOR_WHEEL)); // Fallback
       }
+      // Se você quiser que cada "refresh" busque uma página diferente para variedade:
+      // setCurrentPage(prevPage => prevPage + 1);
     } catch (e) {
-      console.error("Erro em loadMovies:", e);
+      console.error("Erro em loadMoviesInternal (useMovieData):", e);
       setError(e instanceof Error ? e : new Error('Erro desconhecido ao carregar filmes'));
       setMovies(INITIAL_MOVIES.slice(0, MAX_MOVIES_FOR_WHEEL)); // Fallback em caso de erro
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage]);
+  }, []); // Removida currentPage das dependências do useCallback para que refreshMovies sempre pegue uma nova página se incrementarmos
+
+  const refreshMovies = useCallback(async () => {
+    // Incrementa a página para buscar novos filmes, ou reseta para 1,
+    // ou busca uma página aleatória dentro de um limite.
+    // Exemplo simples: buscar sempre uma nova página sequencial.
+    const nextPage = currentPage + 1; // Ou uma lógica mais sofisticada para variedade
+    setCurrentPage(nextPage); // Atualiza o estado da página
+    await loadMoviesInternal(nextPage); // Carrega a próxima página
+  }, [loadMoviesInternal, currentPage]);
+
 
   useEffect(() => {
     if (initialLoad) {
-      loadMovies(initialPage);
+      loadMoviesInternal(1); // Carrega a primeira página inicialmente
     }
-  }, [initialLoad, initialPage, loadMovies]);
+  }, [initialLoad, loadMoviesInternal]);
 
-  return { movies, isLoading, error, loadMovies };
+  return { movies, isLoading, error, refreshMovies, currentPage };
 }
