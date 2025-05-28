@@ -12,7 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { styles } from './styles/roleta.styles';
+import { styles } from './styles/index.styles';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';

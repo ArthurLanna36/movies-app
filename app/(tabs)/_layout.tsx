@@ -9,7 +9,7 @@ import { useTheme } from '@/context/ThemeContext';
 
 // Atualize o ParamList se você quiser tipagem estrita para a rota "roleta"
 export type TopTabsParamList = {
-  roleta: undefined; // <<< ATUALIZADO DE 'index' PARA 'roleta'
+  index: undefined; // <<< ATUALIZADO DE 'index' PARA 'roleta'
   // Adicione outras telas aqui se necessário, ex:
   // settings: { userId: string };
 };
@@ -25,7 +25,7 @@ export default function TabLayout() {
   return (
     <>
       <MaterialTopTabs
-        initialRouteName="roleta" // <<< ATUALIZADO DE 'index' PARA 'roleta'
+        initialRouteName="index" // <<< ATUALIZADO DE 'index' PARA 'roleta'
         screenOptions={{
           tabBarActiveTintColor: Colors[theme].tint,
           tabBarInactiveTintColor: Colors[theme].tabIconDefault,
@@ -42,9 +42,9 @@ export default function TabLayout() {
         }}
       >
         <MaterialTopTabs.Screen
-          name="roleta" // <<< ATUALIZADO DE 'index' PARA 'roleta'
+          name="index" // <<< ATUALIZADO DE 'index' PARA 'roleta'
           options={{
-            tabBarLabel: 'Roleta', // O texto que aparece na aba
+            tabBarLabel: 'index', // O texto que aparece na aba
             tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
               <IconSymbol size={focused ? 22 : 18} name="star.fill" color={color} />
             ),
