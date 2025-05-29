@@ -17,8 +17,6 @@ export const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: 40,
-    fontWeight: 'bold',
-    // color removida
     marginBottom: 20,
     textAlign: 'center',
   },
