@@ -1,11 +1,9 @@
 // services/firestoreService.ts
 import { Movie } from '@/constants/MovieData';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../config/firebaseConfig'; // Importe a instância 'db' configurada
+import { arrayRemove, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebaseConfig';
 
-// Para simplificar, vamos assumir um ID de usuário/dispositivo fixo por enquanto.
-// Em um app real, isso viria da autenticação ou de um ID de dispositivo único.
-const USER_DEVICE_ID = "defaultUserWheel"; // Poderia ser gerado e salvo no AsyncStorage
+const USER_DEVICE_ID = "defaultUserWheel";
 
 /**
  * Salva a lista atual de filmes da roleta para o usuário/dispositivo.
@@ -60,6 +58,31 @@ export const clearWheelMoviesInFirestore = async (): Promise<void> => {
     }
 };
 
-// No futuro, você poderia expandir com:
-// - addSingleMovieToFirestoreList(movie: Movie) -> usando arrayUnion
-// - removeSingleMovieFromFirestoreList(movieId: string) -> usando arrayRemove
+/**
+ * Remove um filme específico da lista da roleta no Firestore.
+ */
+export const removeSingleMovieFromFirestore = async (movieId: string): Promise<void> => {
+  try {
+    const wheelDocRef = doc(db, "userRoulettes", USER_DEVICE_ID);
+    // Para remover um item de um array, precisamos do objeto completo ou de um campo único para identificá-lo.
+    // Se você salvou a lista de Movie[], e Movie tem um 'id' único:
+    // Primeiro, precisamos buscar o documento para encontrar o objeto do filme.
+    const docSnap = await getDoc(wheelDocRef);
+    if (docSnap.exists()) {
+      const movies = docSnap.data().movies as Movie[];
+      const movieToRemove = movies.find(movie => movie.id === movieId);
+      if (movieToRemove) {
+        await updateDoc(wheelDocRef, {
+          movies: arrayRemove(movieToRemove), // arrayRemove precisa do objeto exato
+          lastUpdated: new Date()
+        });
+        console.log(`Filme com ID ${movieId} removido do Firestore!`);
+      } else {
+        console.warn(`Filme com ID ${movieId} não encontrado no Firestore para remoção.`);
+      }
+    }
+  } catch (error) {
+    console.error(`Erro ao remover filme ${movieId} do Firestore:`, error);
+    throw error;
+  }
+};
