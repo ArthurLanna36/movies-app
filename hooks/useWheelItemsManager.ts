@@ -76,40 +76,44 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
   }, [wheelMovies, isLoadingItems, isRemovingMovie]); // Adicionado isRemovingMovie para evitar double save
 
   const addMovieToWheel = useCallback(async (title: string): Promise<Movie | null> => {
-    // ... (lógica existente)
     if (wheelMovies.length >= MAX_WHEEL_ITEMS) {
+      // Este alerta pode ser mantido como nativo ou também migrado para um Dialog na HomeScreen
       Alert.alert('Roleta Cheia', `Você pode adicionar até ${MAX_WHEEL_ITEMS} filmes.`);
-      setErrorAddingMovie(new Error(`A roleta já está cheia (${MAX_WHEEL_ITEMS} filmes).`));
+      setErrorAddingMovie(new Error(`A roleta já está cheia (${MAX_WHEEL_ITEMS} filmes).`)); // Manter para lógica interna
       return null;
     }
     setIsLoadingMovie(true);
     setErrorAddingMovie(null);
     try {
-      const foundMovie = await searchMovieByTitle(title); //
+      const foundMovie = await searchMovieByTitle(title);
       if (foundMovie) {
         if (wheelMovies.find(movie => movie.id === foundMovie.id)) {
-          setErrorAddingMovie(new Error(`"${foundMovie.title}" já está na roleta.`));
-           Alert.alert('Filme Repetido', `"${foundMovie.title}" já está na roleta.`);
+          // AQUI: Setamos o erro que a HomeScreen vai usar para mostrar o Dialog
+          const errorMessage = `"${foundMovie.title}" já está na roleta.`;
+          setErrorAddingMovie(new Error(errorMessage)); // O hook seta o erro
+          // Não vamos mais chamar Alert.alert daqui. A HomeScreen cuidará disso.
           setIsLoadingMovie(false);
-          return null;
+          return null; // Indicamos que o filme não foi adicionado
         }
         setWheelMovies(prevMovies => [...prevMovies, foundMovie]);
         setIsLoadingMovie(false);
         return foundMovie;
       } else {
-        setErrorAddingMovie(new Error(`Filme "${title}" não encontrado.`));
-        Alert.alert('Não Encontrado', `Não conseguimos encontrar o filme "${title}". Tente outro título.`);
+        const errorMessage = `Filme "${title}" não encontrado.`;
+        setErrorAddingMovie(new Error(errorMessage));
+        // Não vamos mais chamar Alert.alert daqui.
         setIsLoadingMovie(false);
         return null;
       }
     } catch (e) {
       console.error("Erro ao adicionar filme à roleta:", e);
-      setErrorAddingMovie(e instanceof Error ? e : new Error('Erro desconhecido ao buscar filme.'));
-      Alert.alert('Erro na Busca', 'Ocorreu um problema ao buscar o filme. Tente novamente.');
+      const errorMessage = e instanceof Error ? e.message : 'Erro desconhecido ao buscar filme.';
+      setErrorAddingMovie(new Error(errorMessage));
+      // Não vamos mais chamar Alert.alert daqui.
       setIsLoadingMovie(false);
       return null;
     }
-  }, [wheelMovies]);
+  }, [wheelMovies]); // Dependências do useCallback
 
   const clearWheel = useCallback(async () => {
     // ... (lógica existente)
