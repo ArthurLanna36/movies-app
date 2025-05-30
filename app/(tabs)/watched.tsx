@@ -1,30 +1,28 @@
 // app/(tabs)/watched.tsx
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { Movie } from "@/constants/MovieData";
-import { useWatchedMoviesManager } from "@/hooks/useWatchedMoviesManager";
-import { BlurView } from "expo-blur"; //
+import { Movie } from "@/constants/MovieData"; //
+import { useWatchedMoviesManager } from "@/hooks/useWatchedMoviesManager"; //
+import { BlurView } from "expo-blur";
 import { Image as ExpoImage } from "expo-image";
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  // ScrollView, // REMOVED ScrollView
-  Alert,
-  FlatList, //
-  StyleSheet, //
+  FlatList,
+  StyleSheet, // Added StyleSheet back for the BlurView
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import {
   Dialog,
-  IconButton,
+  IconButton, // Added IconButton back
   Button as PaperButton,
-  Text as PaperText, //
+  Text as PaperText,
   Portal,
   useTheme as usePaperTheme,
 } from "react-native-paper";
-import { styles } from "./styles/watched.styles";
+import { styles } from "./styles/watched.styles"; //
 
 export default function WatchedScreen() {
   const paperTheme = usePaperTheme();
@@ -37,15 +35,21 @@ export default function WatchedScreen() {
     isRemovingMovie,
     error,
     clearError,
-  } = useWatchedMoviesManager();
+  } = useWatchedMoviesManager(); //
 
   const [movieTitleInput, setMovieTitleInput] = useState("");
   const [errorDialogVisible, setErrorDialogVisible] = useState(false);
+
+  // State for delete confirmation dialog
+  const [deleteConfirmDialogVisible, setDeleteConfirmDialogVisible] =
+    useState(false);
+  const [movieToDelete, setMovieToDelete] = useState<Movie | null>(null);
+  // State to track which movie item has the 'X' icon active
   const [selectedForDeleteId, setSelectedForDeleteId] = useState<string | null>(
     null
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (error) {
       setErrorDialogVisible(true);
     }
@@ -53,10 +57,9 @@ export default function WatchedScreen() {
 
   const handleAddMovie = async () => {
     if (!movieTitleInput.trim()) {
-      // Could show an error directly or use the dialog
       return;
     }
-    const added = await addMovieToWatchedList(movieTitleInput);
+    const added = await addMovieToWatchedList(movieTitleInput); //
     if (added) {
       setMovieTitleInput("");
     }
@@ -64,53 +67,53 @@ export default function WatchedScreen() {
 
   const hideErrorDialog = () => {
     setErrorDialogVisible(false);
-    clearError();
+    clearError(); //
   };
 
-  const handleToggleDeleteMode = (movieId: string) => {
-    if (isRemovingMovie) return;
+  // Toggles the 'X' icon visibility for a movie item
+  const toggleDeleteModeForItem = (movieId: string) => {
+    if (isRemovingMovie) return; // Prevent changing selection during an ongoing removal
 
     if (selectedForDeleteId === movieId) {
-      setSelectedForDeleteId(null);
+      setSelectedForDeleteId(null); // Deselect if already selected
     } else {
-      setSelectedForDeleteId(movieId);
+      setSelectedForDeleteId(movieId); // Select new item
     }
   };
 
-  const confirmAndExecuteDelete = (movie: Movie) => {
+  // Called when the 'X' icon is pressed
+  const handleDeleteIconPress = (movie: Movie) => {
     if (isRemovingMovie) return;
+    setMovieToDelete(movie);
+    setDeleteConfirmDialogVisible(true);
+  };
 
-    Alert.alert(
-      "Confirm Deletion",
-      `Are you sure you want to remove "${movie.title}" from your watched list?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-          onPress: () => setSelectedForDeleteId(null),
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await removeMovieFromWatchedList(movie.id);
-            setSelectedForDeleteId(null);
-          },
-        },
-      ]
-    );
+  // Hides the delete confirmation dialog and clears selection states
+  const hideDeleteConfirmDialog = () => {
+    setMovieToDelete(null);
+    setDeleteConfirmDialogVisible(false);
+    // setSelectedForDeleteId(null); // Also clear the item selection state
+  };
+
+  // Called when the user confirms deletion in the Dialog
+  const executeDeleteMovie = async () => {
+    if (movieToDelete) {
+      await removeMovieFromWatchedList(movieToDelete.id); //
+    }
+    hideDeleteConfirmDialog();
+    setSelectedForDeleteId(null); // Clear the 'X' icon from the item
   };
 
   const renderMovieItem = ({ item }: { item: Movie }) => {
-    const isSelectedForDelete = selectedForDeleteId === item.id;
+    const isSelectedForDeleteVisual = selectedForDeleteId === item.id;
 
     return (
       <View style={styles.movieItemOuterContainer}>
         <TouchableOpacity
           style={styles.movieItemContainer}
-          onPress={() => handleToggleDeleteMode(item.id)}
+          onPress={() => toggleDeleteModeForItem(item.id)} // Toggle 'X' visibility on press
           activeOpacity={0.8}
-          disabled={isRemovingMovie && !isSelectedForDelete}
+          disabled={isRemovingMovie && !isSelectedForDeleteVisual}
         >
           <ExpoImage
             source={{ uri: item.posterUrl }}
@@ -118,11 +121,11 @@ export default function WatchedScreen() {
             contentFit="cover"
             transition={150}
           />
-          {isSelectedForDelete && (
+          {isSelectedForDeleteVisual && ( // Show BlurView if item is selected for delete
             <BlurView
               intensity={50}
               tint={paperTheme.dark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
+              style={StyleSheet.absoluteFill} // Ensures BlurView covers the item
             />
           )}
           <ThemedText
@@ -134,13 +137,13 @@ export default function WatchedScreen() {
           </ThemedText>
         </TouchableOpacity>
 
-        {isSelectedForDelete && (
+        {isSelectedForDeleteVisual && ( // Show 'X' icon if item is selected for delete
           <IconButton
-            icon="close-circle"
+            icon="close-circle" // Or your preferred delete icon
             size={30}
             iconColor={paperTheme.colors.error}
             style={styles.deleteButton}
-            onPress={() => confirmAndExecuteDelete(item)}
+            onPress={() => handleDeleteIconPress(item)} // Open confirmation dialog on 'X' press
             disabled={isRemovingMovie}
           />
         )}
@@ -158,7 +161,7 @@ export default function WatchedScreen() {
               borderColor: paperTheme.colors.primary,
               color: paperTheme.colors.onSurface,
               backgroundColor: paperTheme.colors.surfaceVariant,
-              fontFamily: "GlassAntiqua-Inline", //
+              fontFamily: "GlassAntiqua-Inline",
             },
           ]}
           placeholder="Enter title of watched movie"
@@ -174,7 +177,7 @@ export default function WatchedScreen() {
           disabled={isAdding || isRemovingMovie}
           loading={isAdding}
           style={styles.addButton}
-          labelStyle={{ fontFamily: "GlassAntiqua-Inline", fontSize: 18 }} //
+          labelStyle={{ fontFamily: "GlassAntiqua-Inline", fontSize: 18 }}
           textColor={paperTheme.colors.primary}
         >
           {isAdding ? "Adding..." : "Add"}
@@ -216,7 +219,6 @@ export default function WatchedScreen() {
 
   return (
     <>
-      {/* The ThemedView with styles.container is now the main container */}
       <ThemedView
         style={[
           styles.container,
@@ -224,12 +226,12 @@ export default function WatchedScreen() {
         ]}
       >
         <FlatList
-          ListHeaderComponent={ListHeader} // Input fields and other top content
+          ListHeaderComponent={ListHeader}
           data={watchedMovies}
           renderItem={renderMovieItem}
           keyExtractor={(item) => item.id.toString()}
-          numColumns={3}
-          contentContainerStyle={styles.listContentContainer} // Existing style for padding within the list
+          numColumns={3} //
+          contentContainerStyle={styles.listContentContainer}
           ListEmptyComponent={
             watchedMovies.length === 0 && !isLoading && !isAdding
               ? EmptyListMessage
@@ -239,6 +241,7 @@ export default function WatchedScreen() {
       </ThemedView>
 
       <Portal>
+        {/* Error Dialog for general errors from the hook */}
         <Dialog visible={errorDialogVisible} onDismiss={hideErrorDialog}>
           <Dialog.Icon
             icon="alert-circle-outline"
@@ -246,7 +249,7 @@ export default function WatchedScreen() {
             color={paperTheme.colors.error}
           />
           <Dialog.Title
-            style={[styles.dialogTitle, { fontFamily: "GlassAntiqua-Inline" }]} //
+            style={[styles.dialogTitle, { fontFamily: "GlassAntiqua-Inline" }]}
           >
             Attention
           </Dialog.Title>
@@ -255,7 +258,7 @@ export default function WatchedScreen() {
               variant="bodyMedium"
               style={[
                 styles.dialogContentText,
-                { fontFamily: "GlassAntiqua-Inline" }, //
+                { fontFamily: "GlassAntiqua-Inline" },
               ]}
             >
               {error?.message || "An unknown error occurred."}
@@ -266,11 +269,65 @@ export default function WatchedScreen() {
               onPress={hideErrorDialog}
               labelStyle={[
                 styles.dialogButtonLabel,
-                { fontFamily: "GlassAntiqua-Inline" }, //
+                { fontFamily: "GlassAntiqua-Inline" },
               ]}
               textColor={paperTheme.colors.primary}
             >
               OK
+            </PaperButton>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          visible={deleteConfirmDialogVisible}
+          onDismiss={hideDeleteConfirmDialog}
+        >
+          <Dialog.Icon
+            icon="delete-alert-outline"
+            size={32}
+            color={paperTheme.colors.error}
+          />
+          <Dialog.Title
+            style={[styles.dialogTitle, { fontFamily: "GlassAntiqua-Inline" }]}
+          >
+            Confirm Deletion
+          </Dialog.Title>
+          <Dialog.Content>
+            <PaperText
+              variant="bodyMedium"
+              style={[
+                styles.dialogContentText,
+                { fontFamily: "GlassAntiqua-Inline" },
+              ]}
+            >
+              {`Are you sure you want to remove "${
+                movieToDelete?.title || ""
+              }" from your watched list?`}
+            </PaperText>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <PaperButton
+              onPress={hideDeleteConfirmDialog}
+              labelStyle={[
+                { fontFamily: "GlassAntiqua-Inline" },
+                styles.dialogButtonLabel,
+              ]}
+              textColor={paperTheme.colors.primary}
+            >
+              Cancel
+            </PaperButton>
+            <PaperButton
+              onPress={executeDeleteMovie}
+              disabled={isRemovingMovie}
+              loading={isRemovingMovie}
+              labelStyle={[
+                { fontFamily: "GlassAntiqua-Inline" },
+                styles.dialogButtonLabel,
+              ]}
+              textColor={paperTheme.colors.error}
+            >
+              {isRemovingMovie ? "Deleting..." : "Delete"}
             </PaperButton>
           </Dialog.Actions>
         </Dialog>
