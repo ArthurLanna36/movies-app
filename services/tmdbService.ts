@@ -1,10 +1,12 @@
 // services/tmdbService.ts
-import { Movie } from '@/constants/MovieData';
+import { Movie } from "@/constants/MovieData"; //
 
-const API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY || 'SUA_CHAVE_DE_API_AQUI_COMO_FALLBACK';
-const BASE_URL = 'https://api.themoviedb.org/3';
-const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w200'; // Para pôsteres na roleta
-const PLACEHOLDER_IMAGE_URL = 'https://via.placeholder.com/200x300?text=Not+Found';
+const API_KEY =
+  process.env.EXPO_PUBLIC_TMDB_API_KEY || "YOUR_API_KEY_HERE_AS_FALLBACK"; // Fallback API key
+const BASE_URL = "https://api.themoviedb.org/3";
+const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w200";
+const PLACEHOLDER_IMAGE_URL =
+  "https://via.placeholder.com/200x300?text=Not+Found";
 
 interface TmdbApiMovie {
   id: number;
@@ -23,47 +25,49 @@ interface TmdbSearchResponse {
 }
 
 /**
- * Busca o primeiro filme correspondente a um título no TMDB.
- * @param title O título do filme a ser buscado.
- * @returns Uma promessa que resolve para um objeto Movie ou null se não encontrado.
+ * Searches for the first movie matching a title on TMDB.
+ * @param title The title of the movie to search for.
+ * @returns A promise that resolves to a Movie object or null if not found.
  */
-export const searchMovieByTitle = async (title: string): Promise<Movie | null> => {
-  if (!API_KEY || API_KEY === 'SUA_CHAVE_DE_API_AQUI_COMO_FALLBACK') {
-    console.warn('Chave de API do TMDB não configurada em searchMovieByTitle.');
-    // Retornar um filme placeholder se a chave não estiver configurada, para testes
-    // Em um app real, você pode querer lançar um erro ou retornar null.
+export const searchMovieByTitle = async (
+  title: string
+): Promise<Movie | null> => {
+  if (!API_KEY || API_KEY === "YOUR_API_KEY_HERE_AS_FALLBACK") {
+    console.warn("TMDB API Key not configured in searchMovieByTitle.");
     return {
-        id: Date.now().toString(), // ID placeholder
-        title: `${title} (API Key Ausente)`,
-        posterUrl: PLACEHOLDER_IMAGE_URL,
-        overview: 'Chave da API TMDB não configurada.'
+      id: Date.now().toString(),
+      title: `${title} (API Key Missing)`,
+      posterUrl: PLACEHOLDER_IMAGE_URL,
+      overview: "TMDB API Key not configured.",
     };
-    // throw new Error('Chave de API do TMDB não configurada.');
   }
 
   if (!title.trim()) {
-    console.warn('Título da busca está vazio.');
+    console.warn("Search title is empty.");
     return null;
   }
 
   try {
     const response = await fetch(
-      `${BASE_URL}/search/movie?api_key=${API_KEY}&language=pt-BR&query=${encodeURIComponent(title)}&page=1`
+      // Using en-US for API results language for consistency with error messages
+      `${BASE_URL}/search/movie?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(
+        title
+      )}&page=1`
     );
 
     if (!response.ok) {
       const errorData = await response.text();
       console.error(
-        `Erro na busca da API TMDB: ${response.status} - ${response.statusText}`,
+        `Error in TMDB API search: ${response.status} - ${response.statusText}`,
         errorData
       );
-      throw new Error(`Falha ao buscar filme por título: ${response.statusText}`);
+      throw new Error(`Failed to fetch movie by title: ${response.statusText}`);
     }
 
     const data: TmdbSearchResponse = await response.json();
 
     if (data.results && data.results.length > 0) {
-      const tmdbMovie = data.results[0]; // Pega o primeiro resultado
+      const tmdbMovie = data.results[0];
       return {
         id: tmdbMovie.id.toString(),
         title: tmdbMovie.title,
@@ -73,14 +77,12 @@ export const searchMovieByTitle = async (title: string): Promise<Movie | null> =
         overview: tmdbMovie.overview,
       };
     } else {
-      return null; // Nenhum filme encontrado
+      // Log (in English) when no movie is found with the given title
+      console.log(`No movie found with the title: "${title}"`);
+      return null;
     }
   } catch (error) {
-    console.error('Erro ao buscar filme por título no TMDB:', error);
+    console.error("Error fetching movie by title from TMDB:", error);
     throw error;
   }
 };
-
-// A função fetchPopularMovies pode ser mantida se você quiser outra funcionalidade no futuro,
-// ou removida se a roleta for exclusivamente populada pelo usuário.
-// export const fetchPopularMovies = async (page: number = 1): Promise<Movie[]> => { /* ... */ };

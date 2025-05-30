@@ -1,4 +1,4 @@
-// services/firestoreService.ts
+// services/fireStoreService.ts
 import { Movie } from "@/constants/MovieData"; //
 import {
   arrayRemove,
@@ -25,7 +25,7 @@ export const saveWheelMoviesToFirestore = async (
     await setDoc(wheelDocRef, { movies: movies, lastUpdated: new Date() }); //
     console.log("Wheel list saved to Firestore!"); //
   } catch (error) {
-    console.error("Error saving wheel list to Firestore:", error); //
+    console.error("Error saving Wheel list to Firestore:", error); //
     throw error;
   }
 };
@@ -42,14 +42,14 @@ export const loadWheelMoviesFromFirestore = async (): Promise<Movie[]> => {
       const movies = docSnap.data().movies as Movie[]; //
       // MODIFIED LOG: Log only movie titles
       const movieTitles = movies.map((movie) => movie.title);
-      console.log("Wheel list loaded from Firestore (Titles):", movieTitles);
+      console.log("Wheel list loaded from Firestore (Titles):", movieTitles); //
       return movies;
     } else {
-      console.log("No wheel list found in Firestore for this user."); //
+      console.log("No Wheel list found in Firestore for this user."); //
       return [];
     }
   } catch (error) {
-    console.error("Error loading wheel list from Firestore:", error); //
+    console.error("Error loading Wheel list from Firestore:", error); //
     throw error;
   }
 };
@@ -90,7 +90,7 @@ export const removeSingleMovieFromFirestore = async (
           movies: arrayRemove(movieToRemove), //
           lastUpdated: new Date(),
         });
-        console.log(`Movie with ID ${movieId} removed from Firestore wheel!`); //
+        console.log(`"${movieToRemove.title}" removed from Firestore wheel!`); //
       } else {
         console.warn(
           `Movie with ID ${movieId} not found in Firestore wheel for removal.`
@@ -130,7 +130,9 @@ export const addWatchedMovieToFirestore = async (
       }
     } else {
       await setDoc(watchedDocRef, { movies: [movie], lastUpdated: new Date() }); //
-      console.log("Watched list created with the first movie in Firestore!"); //
+      console.log(
+        "Watched Movies list created with the first movie in Firestore!"
+      ); //
     }
   } catch (error) {
     console.error("Error adding movie to watched list in Firestore:", error); //
@@ -188,7 +190,10 @@ export const removeWatchedMovieFromFirestore = async (
           movies: arrayRemove(movieToRemove), //
           lastUpdated: new Date(),
         });
-        console.log(`Watched movie with ID ${movieId} removed from Firestore!`); //
+        // UPDATED CONSOLE LOG MESSAGE
+        console.log(
+          `Deleted "${movieToRemove.title}" from the Watched Movies list`
+        );
       } else {
         console.warn(
           `Watched movie with ID ${movieId} not found in Firestore for removal.`

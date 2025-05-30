@@ -69,10 +69,12 @@ export default function HomeScreen() {
   useEffect(() => {
     if (
       errorAddingMovie &&
-      (errorAddingMovie.message.includes("já está na roleta") ||
-        errorAddingMovie.message.includes("não encontrado") ||
-        errorAddingMovie.message.includes("A roleta já está cheia") || // Adicionar verificação para roleta cheia
-        errorAddingMovie.message.includes("Erro desconhecido ao buscar filme"))
+      (errorAddingMovie.message.includes("is already on the wheel") || // Updated to English
+        errorAddingMovie.message.includes("not found") || // This will catch the new English message
+        errorAddingMovie.message.includes("The wheel is already full") ||
+        errorAddingMovie.message.includes(
+          "Unknown error while searching for movie"
+        ))
     ) {
       setAddMovieErrorMessage(errorAddingMovie.message);
       setAddMovieErrorDialogVisible(true);
