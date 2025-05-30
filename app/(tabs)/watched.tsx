@@ -3,15 +3,15 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Movie } from "@/constants/MovieData";
 import { useWatchedMoviesManager } from "@/hooks/useWatchedMoviesManager";
-import { BlurView } from "expo-blur"; // Import BlurView
+import { BlurView } from "expo-blur"; //
 import { Image as ExpoImage } from "expo-image";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  // ScrollView, // REMOVED ScrollView
   Alert,
-  FlatList,
-  ScrollView, // For delete confirmation
-  StyleSheet,
+  FlatList, //
+  StyleSheet, //
   TextInput,
   TouchableOpacity,
   View,
@@ -20,7 +20,7 @@ import {
   Dialog,
   IconButton,
   Button as PaperButton,
-  Text as PaperText,
+  Text as PaperText, //
   Portal,
   useTheme as usePaperTheme,
 } from "react-native-paper";
@@ -31,10 +31,10 @@ export default function WatchedScreen() {
   const {
     watchedMovies,
     addMovieToWatchedList,
-    removeMovieFromWatchedList, // Get the new function
+    removeMovieFromWatchedList,
     isLoading,
     isAdding,
-    isRemovingMovie, // Get the new state
+    isRemovingMovie,
     error,
     clearError,
   } = useWatchedMoviesManager();
@@ -43,7 +43,7 @@ export default function WatchedScreen() {
   const [errorDialogVisible, setErrorDialogVisible] = useState(false);
   const [selectedForDeleteId, setSelectedForDeleteId] = useState<string | null>(
     null
-  ); // Tracks item tapped for delete
+  );
 
   React.useEffect(() => {
     if (error) {
@@ -53,6 +53,7 @@ export default function WatchedScreen() {
 
   const handleAddMovie = async () => {
     if (!movieTitleInput.trim()) {
+      // Could show an error directly or use the dialog
       return;
     }
     const added = await addMovieToWatchedList(movieTitleInput);
@@ -67,12 +68,12 @@ export default function WatchedScreen() {
   };
 
   const handleToggleDeleteMode = (movieId: string) => {
-    if (isRemovingMovie) return; // Don't change selection if a delete is in progress
+    if (isRemovingMovie) return;
 
     if (selectedForDeleteId === movieId) {
-      setSelectedForDeleteId(null); // Toggle off if already selected
+      setSelectedForDeleteId(null);
     } else {
-      setSelectedForDeleteId(movieId); // Select for delete
+      setSelectedForDeleteId(movieId);
     }
   };
 
@@ -93,7 +94,7 @@ export default function WatchedScreen() {
           style: "destructive",
           onPress: async () => {
             await removeMovieFromWatchedList(movie.id);
-            setSelectedForDeleteId(null); // Clear selection after attempting deletion
+            setSelectedForDeleteId(null);
           },
         },
       ]
@@ -109,7 +110,7 @@ export default function WatchedScreen() {
           style={styles.movieItemContainer}
           onPress={() => handleToggleDeleteMode(item.id)}
           activeOpacity={0.8}
-          disabled={isRemovingMovie && !isSelectedForDelete} // Prevent selecting other items during a delete operation
+          disabled={isRemovingMovie && !isSelectedForDelete}
         >
           <ExpoImage
             source={{ uri: item.posterUrl }}
@@ -119,9 +120,9 @@ export default function WatchedScreen() {
           />
           {isSelectedForDelete && (
             <BlurView
-              intensity={50} // Adjust blur intensity as needed
-              tint={paperTheme.dark ? "dark" : "light"} // Adapt tint to app theme
-              style={StyleSheet.absoluteFill} // This makes BlurView cover its parent
+              intensity={50}
+              tint={paperTheme.dark ? "dark" : "light"}
+              style={StyleSheet.absoluteFill}
             />
           )}
           <ThemedText
@@ -135,17 +136,67 @@ export default function WatchedScreen() {
 
         {isSelectedForDelete && (
           <IconButton
-            icon="close-circle" // MaterialCommunityIcons name for 'X' in a circle
+            icon="close-circle"
             size={30}
             iconColor={paperTheme.colors.error}
             style={styles.deleteButton}
             onPress={() => confirmAndExecuteDelete(item)}
-            disabled={isRemovingMovie} // Disable if already removing this or another movie
+            disabled={isRemovingMovie}
           />
         )}
       </View>
     );
   };
+
+  const ListHeader = () => (
+    <View>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={[
+            styles.textInput,
+            {
+              borderColor: paperTheme.colors.primary,
+              color: paperTheme.colors.onSurface,
+              backgroundColor: paperTheme.colors.surfaceVariant,
+              fontFamily: "GlassAntiqua-Inline", //
+            },
+          ]}
+          placeholder="Enter title of watched movie"
+          placeholderTextColor={paperTheme.colors.onSurfaceVariant}
+          value={movieTitleInput}
+          onChangeText={setMovieTitleInput}
+          onSubmitEditing={handleAddMovie}
+          editable={!isAdding && !isRemovingMovie}
+        />
+        <PaperButton
+          mode="elevated"
+          onPress={handleAddMovie}
+          disabled={isAdding || isRemovingMovie}
+          loading={isAdding}
+          style={styles.addButton}
+          labelStyle={{ fontFamily: "GlassAntiqua-Inline", fontSize: 18 }} //
+          textColor={paperTheme.colors.primary}
+        >
+          {isAdding ? "Adding..." : "Add"}
+        </PaperButton>
+      </View>
+
+      {isRemovingMovie && (
+        <View style={{ alignItems: "center", marginBottom: 10 }}>
+          <ActivityIndicator size="small" color={paperTheme.colors.primary} />
+          <ThemedText type="default" style={{ fontSize: 12, marginTop: 4 }}>
+            Removing movie...
+          </ThemedText>
+        </View>
+      )}
+    </View>
+  );
+
+  const EmptyListMessage = () => (
+    <ThemedText type="default" style={styles.emptyListText}>
+      Your watched movies list is empty. Add some!
+    </ThemedText>
+  );
 
   if (isLoading) {
     return (
@@ -165,74 +216,27 @@ export default function WatchedScreen() {
 
   return (
     <>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContainer,
+      {/* The ThemedView with styles.container is now the main container */}
+      <ThemedView
+        style={[
+          styles.container,
           { backgroundColor: paperTheme.colors.background },
         ]}
-        keyboardShouldPersistTaps="handled"
       >
-        <ThemedView
-          style={[styles.container, { backgroundColor: "transparent" }]}
-        >
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[
-                styles.textInput,
-                {
-                  borderColor: paperTheme.colors.primary,
-                  color: paperTheme.colors.onSurface,
-                  backgroundColor: paperTheme.colors.surfaceVariant,
-                  fontFamily: "GlassAntiqua-Inline",
-                },
-              ]}
-              placeholder="Enter title of watched movie"
-              placeholderTextColor={paperTheme.colors.onSurfaceVariant}
-              value={movieTitleInput}
-              onChangeText={setMovieTitleInput}
-              onSubmitEditing={handleAddMovie}
-              editable={!isAdding && !isRemovingMovie}
-            />
-            <PaperButton
-              mode="elevated"
-              onPress={handleAddMovie}
-              disabled={isAdding || isRemovingMovie}
-              loading={isAdding}
-              style={styles.addButton}
-              labelStyle={{ fontFamily: "GlassAntiqua-Inline", fontSize: 18 }}
-              textColor={paperTheme.colors.primary}
-            >
-              {isAdding ? "Adding..." : "Add"}
-            </PaperButton>
-          </View>
-
-          {isRemovingMovie && ( // Global removing indicator (optional)
-            <View style={{ alignItems: "center", marginBottom: 10 }}>
-              <ActivityIndicator
-                size="small"
-                color={paperTheme.colors.primary}
-              />
-              <ThemedText type="default" style={{ fontSize: 12, marginTop: 4 }}>
-                Removing movie...
-              </ThemedText>
-            </View>
-          )}
-
-          {watchedMovies.length === 0 && !isLoading && !isAdding && (
-            <ThemedText type="default" style={styles.emptyListText}>
-              Your watched movies list is empty. Add some!
-            </ThemedText>
-          )}
-
-          <FlatList
-            data={watchedMovies}
-            renderItem={renderMovieItem}
-            keyExtractor={(item) => item.id.toString()}
-            numColumns={3}
-            contentContainerStyle={styles.listContentContainer}
-          />
-        </ThemedView>
-      </ScrollView>
+        <FlatList
+          ListHeaderComponent={ListHeader} // Input fields and other top content
+          data={watchedMovies}
+          renderItem={renderMovieItem}
+          keyExtractor={(item) => item.id.toString()}
+          numColumns={3}
+          contentContainerStyle={styles.listContentContainer} // Existing style for padding within the list
+          ListEmptyComponent={
+            watchedMovies.length === 0 && !isLoading && !isAdding
+              ? EmptyListMessage
+              : null
+          }
+        />
+      </ThemedView>
 
       <Portal>
         <Dialog visible={errorDialogVisible} onDismiss={hideErrorDialog}>
@@ -242,7 +246,7 @@ export default function WatchedScreen() {
             color={paperTheme.colors.error}
           />
           <Dialog.Title
-            style={[styles.dialogTitle, { fontFamily: "GlassAntiqua-Inline" }]}
+            style={[styles.dialogTitle, { fontFamily: "GlassAntiqua-Inline" }]} //
           >
             Attention
           </Dialog.Title>
@@ -251,7 +255,7 @@ export default function WatchedScreen() {
               variant="bodyMedium"
               style={[
                 styles.dialogContentText,
-                { fontFamily: "GlassAntiqua-Inline" },
+                { fontFamily: "GlassAntiqua-Inline" }, //
               ]}
             >
               {error?.message || "An unknown error occurred."}
@@ -262,7 +266,7 @@ export default function WatchedScreen() {
               onPress={hideErrorDialog}
               labelStyle={[
                 styles.dialogButtonLabel,
-                { fontFamily: "GlassAntiqua-Inline" },
+                { fontFamily: "GlassAntiqua-Inline" }, //
               ]}
               textColor={paperTheme.colors.primary}
             >
