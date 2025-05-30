@@ -22,7 +22,7 @@ import {
   Portal,
   useTheme as usePaperTheme,
 } from "react-native-paper";
-import styles from "./styles/watched.styles";
+import styles from "../../styles/watched.styles";
 
 export default function WatchedScreen() {
   const paperTheme = usePaperTheme();

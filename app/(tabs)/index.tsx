@@ -21,7 +21,7 @@ import {
   Portal,
   useTheme as usePaperTheme,
 } from "react-native-paper";
-import styles from "./styles/index.styles";
+import styles from "../../styles/index.styles";
 
 export default function HomeScreen() {
   useAppThemeHook();

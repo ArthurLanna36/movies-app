@@ -1,4 +1,4 @@
-import { WHEEL_SIZE } from "@/constants/GameSettings"; //
+import { WHEEL_SIZE } from "@/constants/GameSettings";
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
@@ -6,7 +6,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor removido, será aplicado dinamicamente
   },
   container: {
     width: "100%",
@@ -27,7 +26,6 @@ const styles = StyleSheet.create({
   },
   textInput: {
     height: 45,
-    // borderColor removida
     borderWidth: 1,
     marginBottom: 10,
     paddingHorizontal: 10,
@@ -58,7 +56,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   resultText: {
-    // A cor será aplicada por ThemedText
     fontSize: 30,
     marginTop: 15,
     fontWeight: "bold",
@@ -69,19 +66,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    // A cor será aplicada por ThemedText
     marginTop: 8,
     fontSize: 14,
   },
   errorText: {
-    // A cor pode ser condicional no componente ou ThemedText
     fontSize: 14,
     textAlign: "center",
     marginBottom: 10,
     marginTop: 5,
   },
   emptyWheelText: {
-    // A cor será aplicada por ThemedText
     fontSize: 16,
     marginVertical: 30,
     textAlign: "center",

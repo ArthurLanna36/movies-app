@@ -1,5 +1,5 @@
 // services/fireStoreService.ts
-import { Movie } from "@/constants/MovieData"; //
+import { Movie } from "@/constants/MovieData";
 import {
   arrayRemove,
   arrayUnion,
@@ -7,204 +7,206 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-} from "firebase/firestore"; //
-import { db } from "../config/firebaseConfig"; //
+} from "firebase/firestore";
+import { db } from "../config/firebaseConfig";
 
-const USER_DEVICE_ID = "defaultUserWheel"; //
-const WATCHED_MOVIES_DOC_ID = "defaultUserWatched"; //
-
-/**
- * Saves the current list of wheel movies for the user/device.
- * If a list already exists, it will be replaced.
- */
 export const saveWheelMoviesToFirestore = async (
+  userId: string,
   movies: Movie[]
 ): Promise<void> => {
+  if (!userId) throw new Error("User ID is required to save wheel movies.");
   try {
-    const wheelDocRef = doc(db, "userRoulettes", USER_DEVICE_ID); //
-    await setDoc(wheelDocRef, { movies: movies, lastUpdated: new Date() }); //
-    console.log("Wheel list saved to Firestore!"); //
+    const wheelDocRef = doc(db, "userRoulettes", userId);
+    await setDoc(wheelDocRef, { movies: movies, lastUpdated: new Date() });
+    console.log(`Wheel list saved to Firestore for user: ${userId}!`);
   } catch (error) {
-    console.error("Error saving Wheel list to Firestore:", error); //
+    console.error("Error saving Wheel list to Firestore:", error);
     throw error;
   }
 };
 
-/**
- * Loads the wheel movies list from Firestore for the user/device.
- */
-export const loadWheelMoviesFromFirestore = async (): Promise<Movie[]> => {
+export const loadWheelMoviesFromFirestore = async (
+  userId: string
+): Promise<Movie[]> => {
+  if (!userId) {
+    console.log("No user ID provided, returning empty wheel list.");
+    return [];
+  }
   try {
-    const wheelDocRef = doc(db, "userRoulettes", USER_DEVICE_ID); //
-    const docSnap = await getDoc(wheelDocRef); //
+    const wheelDocRef = doc(db, "userRoulettes", userId);
+    const docSnap = await getDoc(wheelDocRef);
 
     if (docSnap.exists()) {
-      const movies = docSnap.data().movies as Movie[]; //
-      // MODIFIED LOG: Log only movie titles
-      const movieTitles = movies.map((movie) => movie.title);
-      console.log("Wheel list loaded from Firestore (Titles):", movieTitles); //
-      return movies;
-    } else {
-      console.log("No Wheel list found in Firestore for this user."); //
-      return [];
-    }
-  } catch (error) {
-    console.error("Error loading Wheel list from Firestore:", error); //
-    throw error;
-  }
-};
-
-/**
- * Clears the wheel movies list in Firestore for the user/device.
- */
-export const clearWheelMoviesInFirestore = async (): Promise<void> => {
-  console.log("fireStoreService: clearWheelMoviesInFirestore initiated."); //
-  try {
-    const wheelDocRef = doc(db, "userRoulettes", USER_DEVICE_ID); //
-    await setDoc(
-      wheelDocRef,
-      { movies: [], lastUpdated: new Date() },
-      { merge: true }
-    ); //
-    console.log("Wheel list cleared in Firestore!"); //
-  } catch (error) {
-    console.error("Error clearing wheel list in Firestore:", error); //
-    throw error;
-  }
-};
-
-/**
- * Removes a specific movie from the wheel list in Firestore.
- */
-export const removeSingleMovieFromFirestore = async (
-  movieId: string
-): Promise<void> => {
-  try {
-    const wheelDocRef = doc(db, "userRoulettes", USER_DEVICE_ID); //
-    const docSnap = await getDoc(wheelDocRef); //
-    if (docSnap.exists()) {
-      const movies = docSnap.data().movies as Movie[]; //
-      const movieToRemove = movies.find((movie) => movie.id === movieId); //
-      if (movieToRemove) {
-        await updateDoc(wheelDocRef, {
-          movies: arrayRemove(movieToRemove), //
-          lastUpdated: new Date(),
-        });
-        console.log(`"${movieToRemove.title}" removed from Firestore wheel!`); //
-      } else {
-        console.warn(
-          `Movie with ID ${movieId} not found in Firestore wheel for removal.`
-        ); //
-      }
-    }
-  } catch (error) {
-    console.error(
-      `Error removing movie ${movieId} from Firestore wheel:`,
-      error
-    ); //
-    throw error;
-  }
-};
-
-/**
- * Saves a single movie to the watched list in Firestore.
- * Avoids duplicates based on movie ID.
- */
-export const addWatchedMovieToFirestore = async (
-  movie: Movie
-): Promise<void> => {
-  try {
-    const watchedDocRef = doc(db, "userWatchedMovies", WATCHED_MOVIES_DOC_ID); //
-    const docSnap = await getDoc(watchedDocRef); //
-    if (docSnap.exists()) {
-      const existingMovies = docSnap.data().movies as Movie[]; //
-      if (!existingMovies.find((m) => m.id === movie.id)) {
-        //
-        await updateDoc(watchedDocRef, {
-          movies: arrayUnion(movie), //
-          lastUpdated: new Date(),
-        });
-        console.log("Movie added to watched list in Firestore!"); //
-      } else {
-        console.log("Movie already exists in Firestore watched list."); //
-      }
-    } else {
-      await setDoc(watchedDocRef, { movies: [movie], lastUpdated: new Date() }); //
-      console.log(
-        "Watched Movies list created with the first movie in Firestore!"
-      ); //
-    }
-  } catch (error) {
-    console.error("Error adding movie to watched list in Firestore:", error); //
-    throw error;
-  }
-};
-
-/**
- * Loads the watched movies list from Firestore.
- */
-export const loadWatchedMoviesFromFirestore = async (): Promise<Movie[]> => {
-  try {
-    const watchedDocRef = doc(db, "userWatchedMovies", WATCHED_MOVIES_DOC_ID); //
-    const docSnap = await getDoc(watchedDocRef); //
-
-    if (docSnap.exists()) {
-      const movies = (docSnap.data().movies as Movie[]).sort(
-        (
-          a,
-          b //
-        ) => a.title.localeCompare(b.title)
-      );
-      // MODIFIED LOG: Log only movie titles
+      const movies = docSnap.data().movies as Movie[];
       const movieTitles = movies.map((movie) => movie.title);
       console.log(
-        "Watched list loaded from Firestore (Titles):", //
+        `Wheel list loaded from Firestore for user ${userId} (Titles):`,
         movieTitles
       );
       return movies;
     } else {
-      console.log("No watched list found in Firestore."); //
+      console.log(`No Wheel list found in Firestore for user: ${userId}.`);
       return [];
     }
   } catch (error) {
-    console.error("Error loading watched list from Firestore:", error); //
+    console.error("Error loading Wheel list from Firestore:", error);
     throw error;
   }
 };
 
-/**
- * Removes a specific movie from the watched list in Firestore.
- */
-export const removeWatchedMovieFromFirestore = async (
+export const clearWheelMoviesInFirestore = async (
+  userId: string
+): Promise<void> => {
+  if (!userId) throw new Error("User ID is required to clear wheel movies.");
+  console.log(
+    `fireStoreService: clearWheelMoviesInFirestore initiated for user ${userId}.`
+  );
+  try {
+    const wheelDocRef = doc(db, "userRoulettes", userId);
+    await setDoc(
+      wheelDocRef,
+      { movies: [], lastUpdated: new Date() },
+      { merge: true }
+    );
+    console.log(`Wheel list cleared in Firestore for user: ${userId}!`);
+  } catch (error) {
+    console.error("Error clearing wheel list in Firestore:", error);
+    throw error;
+  }
+};
+
+export const removeSingleMovieFromFirestore = async (
+  userId: string,
   movieId: string
 ): Promise<void> => {
+  if (!userId) throw new Error("User ID is required to remove a movie.");
   try {
-    const watchedDocRef = doc(db, "userWatchedMovies", WATCHED_MOVIES_DOC_ID); //
-    const docSnap = await getDoc(watchedDocRef); //
-
+    const wheelDocRef = doc(db, "userRoulettes", userId);
+    const docSnap = await getDoc(wheelDocRef);
     if (docSnap.exists()) {
-      const movies = docSnap.data().movies as Movie[]; //
-      const movieToRemove = movies.find((movie) => movie.id === movieId); //
+      const movies = docSnap.data().movies as Movie[];
+      const movieToRemove = movies.find((movie) => movie.id === movieId);
       if (movieToRemove) {
-        await updateDoc(watchedDocRef, {
-          movies: arrayRemove(movieToRemove), //
+        await updateDoc(wheelDocRef, {
+          movies: arrayRemove(movieToRemove),
           lastUpdated: new Date(),
         });
-        // UPDATED CONSOLE LOG MESSAGE
         console.log(
-          `Deleted "${movieToRemove.title}" from the Watched Movies list`
+          `"${movieToRemove.title}" removed from Firestore wheel for user ${userId}!`
         );
       } else {
         console.warn(
-          `Watched movie with ID ${movieId} not found in Firestore for removal.`
-        ); //
+          `Movie with ID ${movieId} not found in Firestore wheel for user ${userId} for removal.`
+        );
       }
     }
   } catch (error) {
     console.error(
-      `Error removing watched movie ${movieId} from Firestore:`,
+      `Error removing movie ${movieId} from Firestore wheel for user ${userId}:`,
       error
-    ); //
+    );
+    throw error;
+  }
+};
+
+export const addWatchedMovieToFirestore = async (
+  userId: string,
+  movie: Movie
+): Promise<void> => {
+  if (!userId) throw new Error("User ID is required to add a watched movie.");
+  try {
+    const watchedDocRef = doc(db, "userWatchedMovies", userId);
+    const docSnap = await getDoc(watchedDocRef);
+    if (docSnap.exists()) {
+      const existingMovies = docSnap.data().movies as Movie[];
+      if (!existingMovies.find((m) => m.id === movie.id)) {
+        await updateDoc(watchedDocRef, {
+          movies: arrayUnion(movie),
+          lastUpdated: new Date(),
+        });
+        console.log(
+          `Movie added to watched list in Firestore for user ${userId}!`
+        );
+      } else {
+        console.log(
+          `Movie already exists in Firestore watched list for user ${userId}.`
+        );
+      }
+    } else {
+      await setDoc(watchedDocRef, { movies: [movie], lastUpdated: new Date() });
+      console.log(
+        `Watched Movies list created with the first movie in Firestore for user ${userId}!`
+      );
+    }
+  } catch (error) {
+    console.error("Error adding movie to watched list in Firestore:", error);
+    throw error;
+  }
+};
+
+export const loadWatchedMoviesFromFirestore = async (
+  userId: string
+): Promise<Movie[]> => {
+  if (!userId) {
+    console.log("No user ID provided, returning empty watched list.");
+    return [];
+  }
+  try {
+    const watchedDocRef = doc(db, "userWatchedMovies", userId);
+    const docSnap = await getDoc(watchedDocRef);
+
+    if (docSnap.exists()) {
+      const movies = (docSnap.data().movies as Movie[]).sort((a, b) =>
+        a.title.localeCompare(b.title)
+      );
+      const movieTitles = movies.map((movie) => movie.title);
+      console.log(
+        `Watched list loaded from Firestore for user ${userId} (Titles):`,
+        movieTitles
+      );
+      return movies;
+    } else {
+      console.log(`No watched list found in Firestore for user: ${userId}.`);
+      return [];
+    }
+  } catch (error) {
+    console.error("Error loading watched list from Firestore:", error);
+    throw error;
+  }
+};
+
+export const removeWatchedMovieFromFirestore = async (
+  userId: string,
+  movieId: string
+): Promise<void> => {
+  if (!userId)
+    throw new Error("User ID is required to remove a watched movie.");
+  try {
+    const watchedDocRef = doc(db, "userWatchedMovies", userId);
+    const docSnap = await getDoc(watchedDocRef);
+
+    if (docSnap.exists()) {
+      const movies = docSnap.data().movies as Movie[];
+      const movieToRemove = movies.find((movie) => movie.id === movieId);
+      if (movieToRemove) {
+        await updateDoc(watchedDocRef, {
+          movies: arrayRemove(movieToRemove),
+          lastUpdated: new Date(),
+        });
+        console.log(
+          `Deleted "${movieToRemove.title}" from the Watched Movies list for user ${userId}`
+        );
+      } else {
+        console.warn(
+          `Watched movie with ID ${movieId} not found in Firestore for user ${userId} for removal.`
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      `Error removing watched movie ${movieId} from Firestore for user ${userId}:`,
+      error
+    );
     throw error;
   }
 };

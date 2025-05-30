@@ -4,13 +4,13 @@ import {
   DefaultTheme as NavigationDefaultTheme,
   ThemeProvider as NavigationThemeProvider,
 } from "@react-navigation/native";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-// Import React and useState for managing menu visibility
-import { useEffect, useState } from "react"; // Added React and useState
-// Import Menu and IconButton from react-native-paper
+import { useFonts } from "expo-font";
+import { useEffect, useState } from "react"; // React importado
+import { View } from "react-native"; // View importado
 import {
   adaptNavigationTheme,
   IconButton,
@@ -18,76 +18,96 @@ import {
   MD3LightTheme,
   Menu,
   PaperProvider,
-} from "react-native-paper"; // Added Menu, IconButton
+  Text as PaperText, // PaperText importado
+} from "react-native-paper";
 
-// Removed ThemeToggleButton import as it's now integrated into the Menu
-import { IconSymbol } from "@/components/ui/IconSymbol"; // For icons within the Menu
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import {
   AppThemeProvider,
   useTheme as useAppThemeHook,
 } from "@/context/ThemeContext";
+import * as ExpoSplashScreen from "expo-splash-screen";
 
-import { useFonts } from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
+ExpoSplashScreen.preventAutoHideAsync();
 
-SplashScreen.preventAutoHideAsync();
-
-// Adapts navigation themes to be compatible with Paper themes
 const { LightTheme: AdaptedNavigationLight, DarkTheme: AdaptedNavigationDark } =
   adaptNavigationTheme({
     reactNavigationLight: NavigationDefaultTheme,
     reactNavigationDark: NavigationDarkTheme,
   });
 
-function AppNavigation() {
-  const { theme: appThemeValue, toggleTheme } = useAppThemeHook(); // Get toggleTheme here
+function AuthGuardedApp() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { theme: appThemeValue, toggleTheme } = useAppThemeHook();
+  const { signOut } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  const [settingsMenuVisible, setSettingsMenuVisible] = useState(false);
+  const openSettingsMenu = () => setSettingsMenuVisible(true);
+  const closeSettingsMenu = () => setSettingsMenuVisible(false);
 
   const basePaperTheme =
     appThemeValue === "dark" ? MD3DarkTheme : MD3LightTheme;
   const navigationTheme =
     appThemeValue === "dark" ? AdaptedNavigationDark : AdaptedNavigationLight;
-
   const paperTheme = {
     ...basePaperTheme,
-    colors: {
-      ...basePaperTheme.colors,
-      ...navigationTheme.colors,
-    },
+    colors: { ...basePaperTheme.colors, ...navigationTheme.colors },
   };
 
-  // State for settings menu visibility
-  const [settingsMenuVisible, setSettingsMenuVisible] = useState(false);
-  const openSettingsMenu = () => setSettingsMenuVisible(true);
-  const closeSettingsMenu = () => setSettingsMenuVisible(false);
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    const inAuthGroup =
+      segments.length > 0 && (segments[0] as string) === "(auth)";
+
+    if (!user && !inAuthGroup) {
+      router.replace("/(auth)/login");
+    } else if (user && inAuthGroup) {
+      router.replace("/(tabs)");
+    }
+  }, [user, isAuthLoading, segments, router]);
+
+  const handleSignOut = async () => {
+    closeSettingsMenu();
+    await signOut();
+  };
+
+  if (isAuthLoading) {
+    return null;
+  }
 
   return (
     <PaperProvider theme={paperTheme}>
       <NavigationThemeProvider value={navigationTheme}>
-        <Stack>
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: paperTheme.colors.card },
+            headerTintColor: paperTheme.colors.text,
+          }}
+        >
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen
             name="(tabs)"
             options={{
-              headerShown: true,
-              title: "MovieDeck", // Your chosen title
+              headerShown: !!user, // Mostra header apenas se estiver logado e na rota (tabs)
+              title: "MovieDeck",
               headerTitleStyle: {
                 fontFamily: "GlassAntiqua-Inline",
                 fontSize: 50,
               },
-              headerStyle: {
-                backgroundColor: navigationTheme.colors.card,
-              },
-              headerTintColor: navigationTheme.colors.text,
-              // headerRight is now a Menu anchored to a gear IconButton
               headerRight: () => (
                 <Menu
                   visible={settingsMenuVisible}
                   onDismiss={closeSettingsMenu}
                   anchor={
                     <IconButton
-                      icon="cog" // Gear icon
-                      iconColor={navigationTheme.colors.text}
+                      icon="cog"
+                      iconColor={paperTheme.colors.text}
                       onPress={openSettingsMenu}
-                      style={{ marginRight: 5 }} // Added some margin for better spacing
+                      style={{ marginRight: 5 }}
                     />
                   }
                 >
@@ -106,25 +126,34 @@ function AppNavigation() {
                             ? "sun.max.fill"
                             : "moon.fill"
                         }
-                        size={22} // Standard size for menu icons
-                        color={navigationTheme.colors.text} // Icon color within the menu
+                        size={22}
+                        color={paperTheme.colors.text}
                       />
                     )}
                     titleStyle={{
-                      color: navigationTheme.colors.text, // Text color for the menu item
-                      fontFamily: "GlassAntiqua-Inline", // Apply custom font to menu item
-                      fontSize: 16, // Adjusted font size for menu item
+                      color: paperTheme.colors.text,
+                      fontFamily: "GlassAntiqua-Inline",
+                      fontSize: 16,
                     }}
                   />
-                  {/* You can add more Menu.Items here for future settings */}
-                  {/* For example:
+                  {user && (
                     <Menu.Item
-                      onPress={() => { console.log('About pressed'); closeSettingsMenu(); }}
-                      title="About"
-                      titleStyle={{ color: navigationTheme.colors.text, fontFamily: 'GlassAntiqua-Inline', fontSize: 16 }}
-                      leadingIcon={() => <IconSymbol name="information.circle" size={22} color={navigationTheme.colors.text} />}
+                      onPress={handleSignOut}
+                      title="Sign Out"
+                      leadingIcon={() => (
+                        <IconSymbol
+                          name="logout"
+                          size={22}
+                          color={paperTheme.colors.text}
+                        />
+                      )}
+                      titleStyle={{
+                        color: paperTheme.colors.text,
+                        fontFamily: "GlassAntiqua-Inline",
+                        fontSize: 16,
+                      }}
                     />
-                  */}
+                  )}
                 </Menu>
               ),
             }}
@@ -144,21 +173,39 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
+      ExpoSplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) {
     return null;
   }
-
   if (fontError) {
     console.error("Error loading fonts:", fontError);
+    return (
+      <PaperProvider>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            padding: 20,
+          }}
+        >
+          <PaperText style={{ textAlign: "center" }}>
+            Error loading fonts. Please ensure the font file exists at
+            assets/fonts/GlassAntiqua-Regular.ttf and restart the app.
+          </PaperText>
+        </View>
+      </PaperProvider>
+    );
   }
 
   return (
     <AppThemeProvider>
-      <AppNavigation />
+      <AuthProvider>
+        <AuthGuardedApp />
+      </AuthProvider>
     </AppThemeProvider>
   );
 }

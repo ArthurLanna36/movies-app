@@ -1,29 +1,32 @@
 // hooks/useWatchedMoviesManager.ts
 import { Movie } from "@/constants/MovieData";
+import { useAuth } from "@/context/AuthContext";
 import {
   addWatchedMovieToFirestore,
   loadWatchedMoviesFromFirestore,
-  removeWatchedMovieFromFirestore, // Import the remove function
+  removeWatchedMovieFromFirestore,
 } from "@/services/fireStoreService";
 import { searchMovieByTitle } from "@/services/tmdbService";
 import { useCallback, useEffect, useState } from "react";
+import { Alert } from "react-native";
 
 interface UseWatchedMoviesManagerReturn {
   watchedMovies: Movie[];
   addMovieToWatchedList: (title: string) => Promise<Movie | null>;
-  removeMovieFromWatchedList: (movieId: string) => Promise<void>; // New function
+  removeMovieFromWatchedList: (movieId: string) => Promise<void>;
   isLoading: boolean;
   isAdding: boolean;
-  isRemovingMovie: boolean; // New state
+  isRemovingMovie: boolean;
   error: Error | null;
   clearError: () => void;
 }
 
 export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
+  const { user } = useAuth();
   const [watchedMovies, setWatchedMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAdding, setIsAdding] = useState<boolean>(false);
-  const [isRemovingMovie, setIsRemovingMovie] = useState<boolean>(false); // State for removal process
+  const [isRemovingMovie, setIsRemovingMovie] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
   const clearError = () => setError(null);
@@ -32,13 +35,18 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
     return [...movies].sort((a, b) => a.title.localeCompare(b.title));
   };
 
-  // Load movies from Firestore on init
   useEffect(() => {
+    if (!user?.uid) {
+      setIsLoading(false);
+      setWatchedMovies([]);
+      return;
+    }
+    const userId = user.uid;
     const loadMovies = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const loaded = await loadWatchedMoviesFromFirestore();
+        const loaded = await loadWatchedMoviesFromFirestore(userId);
         setWatchedMovies(sortMovies(loaded));
       } catch (e) {
         console.error("Error loading watched movies:", e);
@@ -50,10 +58,20 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
       }
     };
     loadMovies();
-  }, []);
+  }, [user?.uid]);
 
   const addMovieToWatchedList = useCallback(
     async (title: string): Promise<Movie | null> => {
+      if (!user?.uid) {
+        Alert.alert(
+          "Error",
+          "You must be logged in to add movies to your watched list."
+        );
+        setError(new Error("User not authenticated."));
+        return null;
+      }
+      const userId = user.uid;
+
       if (!title.trim()) {
         setError(new Error("Please enter a movie title."));
         return null;
@@ -72,7 +90,7 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
             setIsAdding(false);
             return null;
           }
-          await addWatchedMovieToFirestore(foundMovie);
+          await addWatchedMovieToFirestore(userId, foundMovie);
           setWatchedMovies((prevMovies) =>
             sortMovies([...prevMovies, foundMovie])
           );
@@ -92,36 +110,49 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
         return null;
       }
     },
-    [watchedMovies]
+    [watchedMovies, user?.uid]
   );
 
-  // Function to remove a movie from the watched list
-  const removeMovieFromWatchedList = useCallback(async (movieId: string) => {
-    setIsRemovingMovie(true);
-    setError(null);
-    try {
-      await removeWatchedMovieFromFirestore(movieId); // Call Firestore service
-      setWatchedMovies((prevMovies) =>
-        sortMovies(prevMovies.filter((movie) => movie.id !== movieId))
-      );
-    } catch (e) {
-      console.error("Error removing movie from watched list:", e);
-      setError(
-        e instanceof Error ? e : new Error("Failed to remove movie from list.")
-      );
-      // Optionally, you might want to re-throw or handle the UI rollback differently
-    } finally {
-      setIsRemovingMovie(false);
-    }
-  }, []);
+  const removeMovieFromWatchedList = useCallback(
+    async (movieId: string) => {
+      if (!user?.uid) {
+        Alert.alert(
+          "Error",
+          "You must be logged in to remove movies from your watched list."
+        );
+        setError(new Error("User not authenticated."));
+        return;
+      }
+      const userId = user.uid;
+
+      setIsRemovingMovie(true);
+      setError(null);
+      try {
+        await removeWatchedMovieFromFirestore(userId, movieId);
+        setWatchedMovies((prevMovies) =>
+          sortMovies(prevMovies.filter((movie) => movie.id !== movieId))
+        );
+      } catch (e) {
+        console.error("Error removing movie from watched list:", e);
+        setError(
+          e instanceof Error
+            ? e
+            : new Error("Failed to remove movie from list.")
+        );
+      } finally {
+        setIsRemovingMovie(false);
+      }
+    },
+    [user?.uid]
+  );
 
   return {
     watchedMovies,
     addMovieToWatchedList,
-    removeMovieFromWatchedList, // Export the new function
+    removeMovieFromWatchedList,
     isLoading,
     isAdding,
-    isRemovingMovie, // Export the new state
+    isRemovingMovie,
     error,
     clearError,
   };

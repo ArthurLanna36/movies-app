@@ -1,8 +1,9 @@
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { SymbolViewProps, SymbolWeight } from "expo-symbols";
-import { ComponentProps } from "react";
-import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
+// components/ui/IconSymbol.tsx
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons"; //
+import MaterialIcons from "@expo/vector-icons/MaterialIcons"; //
+import { SymbolViewProps, SymbolWeight } from "expo-symbols"; //
+import { ComponentProps } from "react"; //
+import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native"; //
 
 type IconMapping = Record<
   string,
@@ -22,20 +23,21 @@ const MAPPING: IconMapping = {
   "playlist-check": { set: "MaterialCommunityIcons", name: "playlist-check" },
   "sun.max.fill": { set: "MaterialIcons", name: "wb-sunny" },
   "moon.fill": { set: "MaterialIcons", name: "brightness-3" },
+  logout: { set: "MaterialCommunityIcons", name: "logout" }, // Ícone de logout adicionado
 };
 
 export function IconSymbol({
-  name, // Agora pode ser 'clover.fill'
+  name,
   size = 24,
   color,
   style,
-}: // weight não é usado por MaterialIcons ou MaterialCommunityIcons, pode ser removido ou ignorado aqui
-{
-  name: keyof typeof MAPPING | SymbolViewProps["name"]; // Ajustar o tipo se for usar apenas do MAPPING
+  weight, // weight é ignorado aqui, mas mantido para compatibilidade com a versão iOS se houver
+}: {
+  name: keyof typeof MAPPING | SymbolViewProps["name"];
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight; // Ignorado para Material*Icons
+  weight?: SymbolWeight;
 }) {
   const iconInfo = MAPPING[name as string];
 
@@ -50,7 +52,6 @@ export function IconSymbol({
         />
       );
     }
-    // Por padrão, ou se for MaterialIcons
     return (
       <MaterialIcons
         color={color}
@@ -61,10 +62,8 @@ export function IconSymbol({
     );
   }
 
-  // Fallback para um ícone de ajuda se o nome não for encontrado no MAPPING
-  // ou se o nome for um SF Symbol não mapeado (para Android/Web)
   console.warn(
-    `IconSymbol: Ícone não mapeado '${name}', usando fallback 'help-outline'.`
+    `IconSymbol: Ícone não mapeado '${name}', usando fallback 'help-outline'.` //
   );
   return (
     <MaterialIcons

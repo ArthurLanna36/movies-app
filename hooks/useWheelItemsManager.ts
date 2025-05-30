@@ -1,12 +1,13 @@
 // hooks/useWheelItemsManager.ts
-import { Movie } from "@/constants/MovieData"; //
+import { Movie } from "@/constants/MovieData";
+import { useAuth } from "@/context/AuthContext";
 import {
   clearWheelMoviesInFirestore,
   loadWheelMoviesFromFirestore,
   removeSingleMovieFromFirestore,
   saveWheelMoviesToFirestore,
-} from "@/services/fireStoreService"; //
-import { searchMovieByTitle } from "@/services/tmdbService"; //
+} from "@/services/fireStoreService";
+import { searchMovieByTitle } from "@/services/tmdbService";
 import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 
@@ -28,6 +29,7 @@ interface UseWheelItemsManagerReturn {
 const MAX_WHEEL_ITEMS = 10;
 
 export function useWheelItemsManager(): UseWheelItemsManagerReturn {
+  const { user } = useAuth();
   const [wheelMovies, setWheelMovies] = useState<Movie[]>([]);
   const [isLoadingItems, setIsLoadingItems] = useState<boolean>(true);
   const [isSavingItems, setIsSavingItems] = useState<boolean>(false);
@@ -42,13 +44,18 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
     null
   );
 
-  // Load movies from Firestore on hook initialization
   useEffect(() => {
+    if (!user?.uid) {
+      setIsLoadingItems(false);
+      setWheelMovies([]);
+      return;
+    }
+    const userId = user.uid;
     const loadInitialMovies = async () => {
       setIsLoadingItems(true);
       setErrorLoadingItems(null);
       try {
-        const loadedMovies = await loadWheelMoviesFromFirestore(); //
+        const loadedMovies = await loadWheelMoviesFromFirestore(userId);
         setWheelMovies(loadedMovies);
       } catch (e) {
         console.error("Error loading initial movies from Firestore:", e);
@@ -60,18 +67,18 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
       }
     };
     loadInitialMovies();
-  }, []);
+  }, [user?.uid]);
 
-  // Save to Firestore whenever wheelMovies changes
   useEffect(() => {
-    if (!isLoadingItems) {
+    if (!isLoadingItems && user?.uid) {
+      const userId = user.uid;
       const saveMovies = async () => {
-        if (isRemovingMovie) return;
+        if (isRemovingMovie || isLoadingMovie) return;
 
         setIsSavingItems(true);
         setErrorSavingItems(null);
         try {
-          await saveWheelMoviesToFirestore(wheelMovies); //
+          await saveWheelMoviesToFirestore(userId, wheelMovies);
         } catch (e) {
           console.error("Error saving movies to Firestore:", e);
           setErrorSavingItems(
@@ -84,10 +91,16 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
       };
       saveMovies();
     }
-  }, [wheelMovies, isLoadingItems, isRemovingMovie]);
+  }, [wheelMovies, isLoadingItems, isRemovingMovie, isLoadingMovie, user?.uid]);
 
   const addMovieToWheel = useCallback(
     async (title: string): Promise<Movie | null> => {
+      if (!user?.uid) {
+        Alert.alert("Error", "You must be logged in to add movies.");
+        setErrorAddingMovie(new Error("User not authenticated."));
+        return null;
+      }
+
       if (wheelMovies.length >= MAX_WHEEL_ITEMS) {
         Alert.alert(
           "Wheel Full",
@@ -101,7 +114,7 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
       setIsLoadingMovie(true);
       setErrorAddingMovie(null);
       try {
-        const foundMovie = await searchMovieByTitle(title); //
+        const foundMovie = await searchMovieByTitle(title);
         if (foundMovie) {
           if (wheelMovies.find((movie) => movie.id === foundMovie.id)) {
             const errorMessage = `"${foundMovie.title}" is already on the wheel.`;
@@ -113,7 +126,6 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
           setIsLoadingMovie(false);
           return foundMovie;
         } else {
-          // Set English error message when movie is not found
           const errorMessage = `Movie "${title}" not found.`;
           setErrorAddingMovie(new Error(errorMessage));
           setIsLoadingMovie(false);
@@ -130,14 +142,20 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
         return null;
       }
     },
-    [wheelMovies]
+    [wheelMovies, user?.uid]
   );
 
   const clearWheel = useCallback(async () => {
+    if (!user?.uid) {
+      Alert.alert("Error", "You must be logged in to clear the wheel.");
+      return;
+    }
+    const userId = user.uid;
+
     setIsSavingItems(true);
     setErrorSavingItems(null);
     try {
-      await clearWheelMoviesInFirestore(); //
+      await clearWheelMoviesInFirestore(userId);
       setWheelMovies([]);
     } catch (e) {
       setErrorSavingItems(
@@ -147,27 +165,36 @@ export function useWheelItemsManager(): UseWheelItemsManagerReturn {
     } finally {
       setIsSavingItems(false);
     }
-  }, []);
+  }, [user?.uid]);
 
-  const removeMovieById = useCallback(async (movieId: string) => {
-    setErrorRemovingMovie(null);
-    setIsRemovingMovie(true);
-    try {
-      await removeSingleMovieFromFirestore(movieId); //
-      setWheelMovies((prevMovies) =>
-        prevMovies.filter((movie) => movie.id !== movieId)
-      );
-      console.log(`Movie ${movieId} removed locally and from Firestore.`);
-    } catch (e) {
-      console.error(`Error removing movie ${movieId}:`, e);
-      setErrorRemovingMovie(
-        e instanceof Error ? e : new Error("Failed to remove movie.")
-      );
-      Alert.alert("Error", "Could not remove the movie from the wheel.");
-    } finally {
-      setIsRemovingMovie(false);
-    }
-  }, []);
+  const removeMovieById = useCallback(
+    async (movieId: string) => {
+      if (!user?.uid) {
+        Alert.alert("Error", "You must be logged in to remove movies.");
+        return;
+      }
+      const userId = user.uid;
+
+      setErrorRemovingMovie(null);
+      setIsRemovingMovie(true);
+      try {
+        await removeSingleMovieFromFirestore(userId, movieId);
+        setWheelMovies((prevMovies) =>
+          prevMovies.filter((movie) => movie.id !== movieId)
+        );
+        console.log(`Movie ${movieId} removed locally and from Firestore.`);
+      } catch (e) {
+        console.error(`Error removing movie ${movieId}:`, e);
+        setErrorRemovingMovie(
+          e instanceof Error ? e : new Error("Failed to remove movie.")
+        );
+        Alert.alert("Error", "Could not remove the movie from the wheel.");
+      } finally {
+        setIsRemovingMovie(false);
+      }
+    },
+    [user?.uid]
+  );
 
   return {
     wheelMovies,
