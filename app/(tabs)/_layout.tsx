@@ -1,17 +1,15 @@
-import {
-  createMaterialTopTabNavigator
-} from '@react-navigation/material-top-tabs';
-import { withLayoutContext } from 'expo-router';
+// app/(tabs)/_layout.tsx
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+import { withLayoutContext } from "expo-router";
 
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Colors } from '@/constants/Colors';
-import { useTheme } from '@/context/ThemeContext';
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/context/ThemeContext";
 
-// Atualize o ParamList se você quiser tipagem estrita para a rota "roleta"
+// Atualize o ParamList para incluir a nova rota 'watched'
 export type TopTabsParamList = {
-  index: undefined; // <<< ATUALIZADO DE 'index' PARA 'roleta'
-  // Adicione outras telas aqui se necessário, ex:
-  // settings: { userId: string };
+  index: undefined;
+  watched: undefined; // <<< NOVA ROTA
 };
 
 const { Navigator: TopTabsMaterialNavigator } =
@@ -25,7 +23,7 @@ export default function TabLayout() {
   return (
     <>
       <MaterialTopTabs
-        initialRouteName="index"
+        initialRouteName="index" // Pode mudar para 'watched' se quiser que seja a inicial
         screenOptions={{
           tabBarActiveTintColor: Colors[theme].tint,
           tabBarInactiveTintColor: Colors[theme].tabIconDefault,
@@ -36,33 +34,54 @@ export default function TabLayout() {
             backgroundColor: Colors[theme].tint,
           },
           tabBarLabelStyle: {
-            fontFamily: 'GlassAntiqua-Regular',
-            fontSize: 25, // Seu tamanho ajustado
-            // textTransform: 'none', // Para evitar que o texto fique em maiúsculas se for o padrão
+            fontFamily: "GlassAntiqua-Regular",
+            fontSize: 25,
+            // textTransform: 'none',
           },
-          // NOVO: Adicionar tabBarItemStyle
           tabBarItemStyle: {
-            // flexDirection: 'row', // MaterialTopTabs geralmente já é row por padrão para ícone e label juntos
-            alignItems: 'center', // Ajuda a centralizar o conteúdo (ícone + texto)
-            justifyContent: 'center',
-            paddingVertical: 2, // Adiciona um pouco de padding vertical dentro de cada item da aba
-            // paddingHorizontal: 5, // Pode adicionar padding horizontal também se necessário
+            alignItems: "center",
+            justifyContent: "center",
+            paddingVertical: 2,
           },
-          //  tabBarIconStyle: { // Pode não ter o efeito desejado de espaçamento com o texto
-          //    marginRight: 0, // Tentar zerar ou ajustar margens padrões se houver
-          //  }
         }}
       >
         <MaterialTopTabs.Screen
           name="index"
           options={{
-            tabBarLabel: 'Roleta',
-            tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            tabBarLabel: "Roleta",
+            tabBarIcon: ({
+              color,
+              focused,
+            }: {
+              color: string;
+              focused: boolean;
+            }) => (
               <IconSymbol
-                size={focused ? 28 : 24} // Seu tamanho ajustado
-                name="clover.fill"
+                size={focused ? 28 : 24}
+                name="clover.fill" // Ícone para Roleta
                 color={color}
-                style={{ marginRight: 5 }} // Adiciona uma margem à direita do ícone
+                style={{ marginRight: 5 }}
+              />
+            ),
+          }}
+        />
+        {/* NOVA TELA "ASSISTIDOS" */}
+        <MaterialTopTabs.Screen
+          name="watched" // Nome da rota (nome do arquivo .tsx)
+          options={{
+            tabBarLabel: "Assistidos",
+            tabBarIcon: ({
+              color,
+              focused,
+            }: {
+              color: string;
+              focused: boolean;
+            }) => (
+              <IconSymbol
+                size={focused ? 28 : 24}
+                name="playlist-check" // Ícone para Assistidos (verificar mapeamento)
+                color={color}
+                style={{ marginRight: 5 }}
               />
             ),
           }}
