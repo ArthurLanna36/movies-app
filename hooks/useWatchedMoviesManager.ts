@@ -3,6 +3,7 @@ import { Movie } from "@/constants/MovieData";
 import {
   addWatchedMovieToFirestore,
   loadWatchedMoviesFromFirestore,
+  removeWatchedMovieFromFirestore, // Import the remove function
 } from "@/services/fireStoreService";
 import { searchMovieByTitle } from "@/services/tmdbService";
 import { useCallback, useEffect, useState } from "react";
@@ -10,9 +11,10 @@ import { useCallback, useEffect, useState } from "react";
 interface UseWatchedMoviesManagerReturn {
   watchedMovies: Movie[];
   addMovieToWatchedList: (title: string) => Promise<Movie | null>;
-  // removeMovieFromWatched: (movieId: string) => Promise<void>; // Para uso futuro
+  removeMovieFromWatchedList: (movieId: string) => Promise<void>; // New function
   isLoading: boolean;
   isAdding: boolean;
+  isRemovingMovie: boolean; // New state
   error: Error | null;
   clearError: () => void;
 }
@@ -21,6 +23,7 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
   const [watchedMovies, setWatchedMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [isRemovingMovie, setIsRemovingMovie] = useState<boolean>(false); // State for removal process
   const [error, setError] = useState<Error | null>(null);
 
   const clearError = () => setError(null);
@@ -29,7 +32,7 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
     return [...movies].sort((a, b) => a.title.localeCompare(b.title));
   };
 
-  // Carregar filmes do Firestore ao iniciar
+  // Load movies from Firestore on init
   useEffect(() => {
     const loadMovies = async () => {
       setIsLoading(true);
@@ -38,11 +41,9 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
         const loaded = await loadWatchedMoviesFromFirestore();
         setWatchedMovies(sortMovies(loaded));
       } catch (e) {
-        console.error("Erro ao carregar filmes assistidos:", e);
+        console.error("Error loading watched movies:", e);
         setError(
-          e instanceof Error
-            ? e
-            : new Error("Falha ao carregar lista de assistidos.")
+          e instanceof Error ? e : new Error("Failed to load watched list.")
         );
       } finally {
         setIsLoading(false);
@@ -54,7 +55,7 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
   const addMovieToWatchedList = useCallback(
     async (title: string): Promise<Movie | null> => {
       if (!title.trim()) {
-        setError(new Error("Por favor, digite o título de um filme."));
+        setError(new Error("Please enter a movie title."));
         return null;
       }
       setIsAdding(true);
@@ -65,7 +66,7 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
           if (watchedMovies.find((movie) => movie.id === foundMovie.id)) {
             setError(
               new Error(
-                `"${foundMovie.title}" já está na sua lista de assistidos.`
+                `"${foundMovie.title}" is already in your watched list.`
               )
             );
             setIsAdding(false);
@@ -78,16 +79,14 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
           setIsAdding(false);
           return foundMovie;
         } else {
-          setError(new Error(`Filme "${title}" não encontrado.`));
+          setError(new Error(`Movie "${title}" not found.`));
           setIsAdding(false);
           return null;
         }
       } catch (e) {
-        console.error("Erro ao adicionar filme à lista de assistidos:", e);
+        console.error("Error adding movie to watched list:", e);
         const errorMessage =
-          e instanceof Error
-            ? e.message
-            : "Erro desconhecido ao adicionar filme.";
+          e instanceof Error ? e.message : "Unknown error while adding movie.";
         setError(new Error(errorMessage));
         setIsAdding(false);
         return null;
@@ -96,29 +95,33 @@ export function useWatchedMoviesManager(): UseWatchedMoviesManagerReturn {
     [watchedMovies]
   );
 
-  // Função para remover (exemplo para o futuro)
-  /*
-  const removeMovieFromWatched = useCallback(async (movieId: string) => {
-    // setIsRemoving(true); // Adicionar estado de remoção se necessário
+  // Function to remove a movie from the watched list
+  const removeMovieFromWatchedList = useCallback(async (movieId: string) => {
+    setIsRemovingMovie(true);
     setError(null);
     try {
-      await removeWatchedMovieFromFirestore(movieId);
-      setWatchedMovies(prevMovies => sortMovies(prevMovies.filter(movie => movie.id !== movieId)));
+      await removeWatchedMovieFromFirestore(movieId); // Call Firestore service
+      setWatchedMovies((prevMovies) =>
+        sortMovies(prevMovies.filter((movie) => movie.id !== movieId))
+      );
     } catch (e) {
-      console.error("Erro ao remover filme da lista de assistidos:", e);
-      setError(e instanceof Error ? e : new Error('Falha ao remover filme da lista.'));
+      console.error("Error removing movie from watched list:", e);
+      setError(
+        e instanceof Error ? e : new Error("Failed to remove movie from list.")
+      );
+      // Optionally, you might want to re-throw or handle the UI rollback differently
     } finally {
-      // setIsRemoving(false);
+      setIsRemovingMovie(false);
     }
   }, []);
-  */
 
   return {
     watchedMovies,
     addMovieToWatchedList,
-    // removeMovieFromWatched,
+    removeMovieFromWatchedList, // Export the new function
     isLoading,
     isAdding,
+    isRemovingMovie, // Export the new state
     error,
     clearError,
   };

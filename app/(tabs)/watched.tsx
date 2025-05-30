@@ -2,39 +2,48 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Movie } from "@/constants/MovieData";
-import { useWatchedMoviesManager } from "@/hooks/useWatchedMoviesManager"; // Importar o novo hook
+import { useWatchedMoviesManager } from "@/hooks/useWatchedMoviesManager";
+import { BlurView } from "expo-blur"; // Import BlurView
 import { Image as ExpoImage } from "expo-image";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
-  ScrollView, // Para o caso de muitos filmes e o input não caber
+  ScrollView, // For delete confirmation
+  StyleSheet,
   TextInput,
-  TouchableOpacity, // Se não for usar PaperButton para o item
+  TouchableOpacity,
   View,
 } from "react-native";
 import {
   Dialog,
+  IconButton,
   Button as PaperButton,
   Text as PaperText,
   Portal,
   useTheme as usePaperTheme,
 } from "react-native-paper";
-import { styles } from "./styles/watched.styles"; // Importar os novos estilos
+import { styles } from "./styles/watched.styles";
 
 export default function WatchedScreen() {
   const paperTheme = usePaperTheme();
   const {
     watchedMovies,
     addMovieToWatchedList,
+    removeMovieFromWatchedList, // Get the new function
     isLoading,
     isAdding,
+    isRemovingMovie, // Get the new state
     error,
     clearError,
   } = useWatchedMoviesManager();
 
   const [movieTitleInput, setMovieTitleInput] = useState("");
   const [errorDialogVisible, setErrorDialogVisible] = useState(false);
+  const [selectedForDeleteId, setSelectedForDeleteId] = useState<string | null>(
+    null
+  ); // Tracks item tapped for delete
 
   React.useEffect(() => {
     if (error) {
@@ -44,40 +53,99 @@ export default function WatchedScreen() {
 
   const handleAddMovie = async () => {
     if (!movieTitleInput.trim()) {
-      // Pode mostrar um erro direto ou usar o dialog
       return;
     }
     const added = await addMovieToWatchedList(movieTitleInput);
     if (added) {
-      setMovieTitleInput(""); // Limpa o input se o filme foi adicionado (ou se a busca foi bem sucedida)
+      setMovieTitleInput("");
     }
   };
 
   const hideErrorDialog = () => {
     setErrorDialogVisible(false);
-    clearError(); // Limpa o erro no hook
+    clearError();
   };
 
-  const renderMovieItem = ({ item }: { item: Movie }) => (
-    <TouchableOpacity
-      style={styles.movieItemContainer}
-      onPress={() => {
-        // Poderia abrir um modal com detalhes do filme ou opção de remover
-        // Alert.alert(item.title, item.overview?.substring(0,150) + '...');
-      }}
-    >
-      <ExpoImage
-        source={{ uri: item.posterUrl }}
-        style={styles.posterImage}
-        contentFit="cover"
-        transition={150}
-        placeholderContentFit="cover" // Para imagem de placeholder enquanto carrega
-      />
-      <ThemedText type="default" style={styles.movieTitle} numberOfLines={2}>
-        {item.title}
-      </ThemedText>
-    </TouchableOpacity>
-  );
+  const handleToggleDeleteMode = (movieId: string) => {
+    if (isRemovingMovie) return; // Don't change selection if a delete is in progress
+
+    if (selectedForDeleteId === movieId) {
+      setSelectedForDeleteId(null); // Toggle off if already selected
+    } else {
+      setSelectedForDeleteId(movieId); // Select for delete
+    }
+  };
+
+  const confirmAndExecuteDelete = (movie: Movie) => {
+    if (isRemovingMovie) return;
+
+    Alert.alert(
+      "Confirm Deletion",
+      `Are you sure you want to remove "${movie.title}" from your watched list?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setSelectedForDeleteId(null),
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            await removeMovieFromWatchedList(movie.id);
+            setSelectedForDeleteId(null); // Clear selection after attempting deletion
+          },
+        },
+      ]
+    );
+  };
+
+  const renderMovieItem = ({ item }: { item: Movie }) => {
+    const isSelectedForDelete = selectedForDeleteId === item.id;
+
+    return (
+      <View style={styles.movieItemOuterContainer}>
+        <TouchableOpacity
+          style={styles.movieItemContainer}
+          onPress={() => handleToggleDeleteMode(item.id)}
+          activeOpacity={0.8}
+          disabled={isRemovingMovie && !isSelectedForDelete} // Prevent selecting other items during a delete operation
+        >
+          <ExpoImage
+            source={{ uri: item.posterUrl }}
+            style={styles.posterImage}
+            contentFit="cover"
+            transition={150}
+          />
+          {isSelectedForDelete && (
+            <BlurView
+              intensity={50} // Adjust blur intensity as needed
+              tint={paperTheme.dark ? "dark" : "light"} // Adapt tint to app theme
+              style={StyleSheet.absoluteFill} // This makes BlurView cover its parent
+            />
+          )}
+          <ThemedText
+            type="default"
+            style={styles.movieTitle}
+            numberOfLines={2}
+          >
+            {item.title}
+          </ThemedText>
+        </TouchableOpacity>
+
+        {isSelectedForDelete && (
+          <IconButton
+            icon="close-circle" // MaterialCommunityIcons name for 'X' in a circle
+            size={30}
+            iconColor={paperTheme.colors.error}
+            style={styles.deleteButton}
+            onPress={() => confirmAndExecuteDelete(item)}
+            disabled={isRemovingMovie} // Disable if already removing this or another movie
+          />
+        )}
+      </View>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -89,7 +157,7 @@ export default function WatchedScreen() {
       >
         <ActivityIndicator size="large" color={paperTheme.colors.primary} />
         <ThemedText type="default" style={{ marginTop: 10 }}>
-          Carregando filmes assistidos...
+          Loading watched movies...
         </ThemedText>
       </ThemedView>
     );
@@ -107,9 +175,6 @@ export default function WatchedScreen() {
         <ThemedView
           style={[styles.container, { backgroundColor: "transparent" }]}
         >
-          {/* Opcional: Título da página se não for usar o da Tab */}
-          {/* <ThemedText type="title" style={styles.pageTitle}>Meus Filmes Assistidos</ThemedText> */}
-
           <View style={styles.inputContainer}>
             <TextInput
               style={[
@@ -118,32 +183,44 @@ export default function WatchedScreen() {
                   borderColor: paperTheme.colors.primary,
                   color: paperTheme.colors.onSurface,
                   backgroundColor: paperTheme.colors.surfaceVariant,
-                  fontFamily: "GlassAntiqua-Inline", // Aplicando a fonte
+                  fontFamily: "GlassAntiqua-Inline",
                 },
               ]}
-              placeholder="Digite o título do filme assistido"
+              placeholder="Enter title of watched movie"
               placeholderTextColor={paperTheme.colors.onSurfaceVariant}
               value={movieTitleInput}
               onChangeText={setMovieTitleInput}
-              onSubmitEditing={handleAddMovie} // Adiciona ao pressionar Enter
-              editable={!isAdding}
+              onSubmitEditing={handleAddMovie}
+              editable={!isAdding && !isRemovingMovie}
             />
             <PaperButton
               mode="elevated"
               onPress={handleAddMovie}
-              disabled={isAdding}
+              disabled={isAdding || isRemovingMovie}
               loading={isAdding}
               style={styles.addButton}
-              labelStyle={{ fontFamily: "GlassAntiqua-Inline", fontSize: 18 }} // Aplicando a fonte
+              labelStyle={{ fontFamily: "GlassAntiqua-Inline", fontSize: 18 }}
               textColor={paperTheme.colors.primary}
             >
-              {isAdding ? "Adicionando..." : "Adicionar"}
+              {isAdding ? "Adding..." : "Add"}
             </PaperButton>
           </View>
 
+          {isRemovingMovie && ( // Global removing indicator (optional)
+            <View style={{ alignItems: "center", marginBottom: 10 }}>
+              <ActivityIndicator
+                size="small"
+                color={paperTheme.colors.primary}
+              />
+              <ThemedText type="default" style={{ fontSize: 12, marginTop: 4 }}>
+                Removing movie...
+              </ThemedText>
+            </View>
+          )}
+
           {watchedMovies.length === 0 && !isLoading && !isAdding && (
             <ThemedText type="default" style={styles.emptyListText}>
-              Sua lista de filmes assistidos está vazia. Adicione alguns!
+              Your watched movies list is empty. Add some!
             </ThemedText>
           )}
 
@@ -151,11 +228,8 @@ export default function WatchedScreen() {
             data={watchedMovies}
             renderItem={renderMovieItem}
             keyExtractor={(item) => item.id.toString()}
-            numColumns={3} // Define o layout de grade
+            numColumns={3}
             contentContainerStyle={styles.listContentContainer}
-            // O ScrollView principal já cuida da rolagem geral.
-            // Se a lista for muito longa e o input precisar ficar fixo,
-            // pode-se remover o ScrollView e dar um flex: 1 para o FlatList.
           />
         </ThemedView>
       </ScrollView>
@@ -170,7 +244,7 @@ export default function WatchedScreen() {
           <Dialog.Title
             style={[styles.dialogTitle, { fontFamily: "GlassAntiqua-Inline" }]}
           >
-            Atenção
+            Attention
           </Dialog.Title>
           <Dialog.Content>
             <PaperText
@@ -180,7 +254,7 @@ export default function WatchedScreen() {
                 { fontFamily: "GlassAntiqua-Inline" },
               ]}
             >
-              {error?.message || "Ocorreu um erro desconhecido."}
+              {error?.message || "An unknown error occurred."}
             </PaperText>
           </Dialog.Content>
           <Dialog.Actions>

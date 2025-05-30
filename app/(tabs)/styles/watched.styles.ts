@@ -1,11 +1,20 @@
 // app/(tabs)/styles/watched.styles.ts
 import { Dimensions, StyleSheet } from "react-native";
 
-const { width } = Dimensions.get("window");
+const { width: screenWidth } = Dimensions.get("window"); // Renamed for clarity
+const containerPaddingHorizontal = 10; // Matches padding in styles.container
 const posterGap = 8;
-const numColumns = 3; // Ajuste conforme desejado
-const posterWidth = (width - posterGap * (numColumns + 1)) / numColumns;
-const posterHeight = posterWidth * 1.5; // Proporção comum de pôster
+const numColumns = 3;
+
+// Calculate the width available for the FlatList content (after parent container's padding)
+const flatListAvailableWidth = screenWidth - containerPaddingHorizontal * 2;
+
+// Calculate posterWidth, using Math.floor to prevent subpixel layout issues
+// This formula accounts for (numColumns + 1) total gap units around/between items
+const posterWidth = Math.floor(
+  (flatListAvailableWidth - posterGap * (numColumns + 1)) / numColumns
+);
+const posterHeight = posterWidth * 1.5; // Standard poster aspect ratio
 
 export const styles = StyleSheet.create({
   scrollContainer: {
@@ -15,19 +24,14 @@ export const styles = StyleSheet.create({
   },
   container: {
     width: "100%",
-    flex: 1, // Para o FlatList ocupar o espaço disponível
-    paddingHorizontal: 10,
-  },
-  pageTitle: {
-    fontSize: 32, // Ajustar se o título da aba já for suficiente
-    textAlign: "center",
-    marginVertical: 15,
+    flex: 1,
+    paddingHorizontal: containerPaddingHorizontal, // Ensured this matches the constant used above
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 20,
-    paddingHorizontal: 5, // Adicionado para espaçamento do input
+    paddingHorizontal: 5,
   },
   textInput: {
     flex: 1,
@@ -35,58 +39,61 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     borderRadius: 5,
-    fontSize: 16, // Ajustado para melhor leitura
+    fontSize: 16,
     marginRight: 10,
   },
   addButton: {
-    paddingHorizontal: 15, // Ajustar para o botão de papel
+    paddingHorizontal: 15,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  errorText: {
-    textAlign: "center",
-    marginVertical: 10,
-    fontSize: 14,
-  },
   emptyListText: {
     textAlign: "center",
     marginTop: 50,
     fontSize: 16,
   },
-  // Grid styles
   listContentContainer: {
-    paddingHorizontal: posterGap / 2, // Para compensar o gap nos lados
+    paddingHorizontal: posterGap / 2, // This padding is inside the FlatList
+  },
+  movieItemOuterContainer: {
+    width: posterWidth, // Use the calculated and floored posterWidth
+    margin: posterGap / 2, // This margin is around each item
+    alignItems: "center",
   },
   movieItemContainer: {
-    width: posterWidth,
-    margin: posterGap / 2,
-    alignItems: "center", // Centraliza o texto do título
+    width: "100%",
+    alignItems: "center",
   },
   posterImage: {
-    width: posterWidth,
+    width: posterWidth, // Use the calculated and floored posterWidth
     height: posterHeight,
     borderRadius: 6,
-    backgroundColor: "#e0e0e0", // Placeholder background
+    backgroundColor: "#e0e0e0",
   },
   movieTitle: {
     marginTop: 4,
     fontSize: 12,
     textAlign: "center",
-    flexShrink: 1, // Permite que o texto quebre se necessário
+    flexShrink: 1,
   },
-  // Dialog
+  deleteButton: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 15,
+    zIndex: 10,
+  },
   dialogTitle: {
     textAlign: "center",
-    // fontFamily já virá do tema do Paper
   },
   dialogContentText: {
     textAlign: "center",
-    // fontFamily já virá do tema do Paper
   },
   dialogButtonLabel: {
-    // fontFamily já virá do tema do Paper
+    // Font family will be inherited from Paper theme if set
   },
 });
