@@ -9,20 +9,20 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  StyleSheet, // Added StyleSheet back for the BlurView
+  StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import {
   Dialog,
-  IconButton, // Added IconButton back
+  IconButton,
   Button as PaperButton,
   Text as PaperText,
   Portal,
   useTheme as usePaperTheme,
 } from "react-native-paper";
-import { styles } from "./styles/watched.styles"; //
+import styles from "./styles/watched.styles";
 
 export default function WatchedScreen() {
   const paperTheme = usePaperTheme();

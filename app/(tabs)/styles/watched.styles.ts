@@ -16,7 +16,7 @@ const posterWidth = Math.floor(
 );
 const posterHeight = posterWidth * 1.5; // Standard poster aspect ratio
 
-export const styles = StyleSheet.create({
+const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     alignItems: "center",
@@ -97,3 +97,5 @@ export const styles = StyleSheet.create({
     // Font family will be inherited from Paper theme if set
   },
 });
+
+export default styles;
