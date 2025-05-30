@@ -1,4 +1,6 @@
+// context/AuthContext.tsx
 import { auth } from "@/config/firebaseConfig";
+import { createUserProfile } from "@/services/fireStoreService"; // Import createUserProfile
 import {
   User,
   createUserWithEmailAndPassword,
@@ -17,9 +19,13 @@ import {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  error: Error | null;
+  error: Error | null; // General auth error
   signIn: (email: string, pass: string) => Promise<User | null>;
-  signUp: (email: string, pass: string) => Promise<User | null>;
+  signUp: (
+    email: string,
+    pass: string,
+    username: string
+  ) => Promise<User | null>; // Added username
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -51,16 +57,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         pass
       );
       setUser(userCredential.user);
-      setIsLoading(false);
       return userCredential.user;
     } catch (e: any) {
-      setError(e);
-      setIsLoading(false);
+      setError(e); // Firebase Auth errors have a 'message' property
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const signUp = async (email: string, pass: string): Promise<User | null> => {
+  const signUp = async (
+    email: string,
+    pass: string,
+    username: string
+  ): Promise<User | null> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -69,18 +79,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         pass
       );
-      setUser(userCredential.user);
-      setIsLoading(false);
-      return userCredential.user;
+      if (userCredential.user) {
+        // After creating the user in Auth, create the profile in Firestore
+        const profileResult = await createUserProfile(
+          userCredential.user.uid,
+          email,
+          username
+        );
+        if (!profileResult.success) {
+          // If profile creation fails (e.g., username taken), set error
+          // Optionally, delete the auth user to allow re-registration with a different username
+          // await userCredential.user.delete(); // Consider this for cleaner UX
+          setError(
+            new Error(profileResult.message || "Failed to set up user profile.")
+          );
+          setUser(null); // Ensure user is not set in context if profile fails
+          return null;
+        }
+        setUser(userCredential.user); // Set user in context only if everything succeeds
+        return userCredential.user;
+      }
+      return null; // Should not happen if createUserWithEmailAndPassword succeeds
     } catch (e: any) {
       setError(e);
-      setIsLoading(false);
       return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const signOut = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       await firebaseSignOut(auth);
       setUser(null);

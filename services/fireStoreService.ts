@@ -3,20 +3,30 @@ import { Movie } from "@/constants/MovieData";
 import {
   arrayRemove,
   arrayUnion,
+  collection, // Added for querying users collection
   doc,
   getDoc,
+  getDocs, // Added for querying users collection
+  query, // Added for querying users collection
   setDoc,
   updateDoc,
+  where, // Added for querying users collection
 } from "firebase/firestore";
 import { db } from "../config/firebaseConfig";
 
+/**
+ * Saves the current list of wheel movies for a specific user.
+ * If a list already exists, it will be replaced.
+ * @param userId - The ID of the authenticated user.
+ * @param movies - The array of movies to save.
+ */
 export const saveWheelMoviesToFirestore = async (
   userId: string,
   movies: Movie[]
 ): Promise<void> => {
   if (!userId) throw new Error("User ID is required to save wheel movies.");
   try {
-    const wheelDocRef = doc(db, "userRoulettes", userId);
+    const wheelDocRef = doc(db, "userRoulettes", userId); // Path uses userId
     await setDoc(wheelDocRef, { movies: movies, lastUpdated: new Date() });
     console.log(`Wheel list saved to Firestore for user: ${userId}!`);
   } catch (error) {
@@ -25,6 +35,11 @@ export const saveWheelMoviesToFirestore = async (
   }
 };
 
+/**
+ * Loads the wheel movies list from Firestore for a specific user.
+ * @param userId - The ID of the authenticated user.
+ * @returns A promise that resolves to an array of Movie objects.
+ */
 export const loadWheelMoviesFromFirestore = async (
   userId: string
 ): Promise<Movie[]> => {
@@ -33,7 +48,7 @@ export const loadWheelMoviesFromFirestore = async (
     return [];
   }
   try {
-    const wheelDocRef = doc(db, "userRoulettes", userId);
+    const wheelDocRef = doc(db, "userRoulettes", userId); // Path uses userId
     const docSnap = await getDoc(wheelDocRef);
 
     if (docSnap.exists()) {
@@ -54,6 +69,10 @@ export const loadWheelMoviesFromFirestore = async (
   }
 };
 
+/**
+ * Clears the wheel movies list in Firestore for a specific user.
+ * @param userId - The ID of the authenticated user.
+ */
 export const clearWheelMoviesInFirestore = async (
   userId: string
 ): Promise<void> => {
@@ -62,7 +81,7 @@ export const clearWheelMoviesInFirestore = async (
     `fireStoreService: clearWheelMoviesInFirestore initiated for user ${userId}.`
   );
   try {
-    const wheelDocRef = doc(db, "userRoulettes", userId);
+    const wheelDocRef = doc(db, "userRoulettes", userId); // Path uses userId
     await setDoc(
       wheelDocRef,
       { movies: [], lastUpdated: new Date() },
@@ -75,13 +94,18 @@ export const clearWheelMoviesInFirestore = async (
   }
 };
 
+/**
+ * Removes a specific movie from the wheel list in Firestore for a specific user.
+ * @param userId - The ID of the authenticated user.
+ * @param movieId - The ID of the movie to remove.
+ */
 export const removeSingleMovieFromFirestore = async (
   userId: string,
   movieId: string
 ): Promise<void> => {
   if (!userId) throw new Error("User ID is required to remove a movie.");
   try {
-    const wheelDocRef = doc(db, "userRoulettes", userId);
+    const wheelDocRef = doc(db, "userRoulettes", userId); // Path uses userId
     const docSnap = await getDoc(wheelDocRef);
     if (docSnap.exists()) {
       const movies = docSnap.data().movies as Movie[];
@@ -109,13 +133,19 @@ export const removeSingleMovieFromFirestore = async (
   }
 };
 
+/**
+ * Saves a single movie to the watched list in Firestore for a specific user.
+ * Avoids duplicates based on movie ID.
+ * @param userId - The ID of the authenticated user.
+ * @param movie - The Movie object to add.
+ */
 export const addWatchedMovieToFirestore = async (
   userId: string,
   movie: Movie
 ): Promise<void> => {
   if (!userId) throw new Error("User ID is required to add a watched movie.");
   try {
-    const watchedDocRef = doc(db, "userWatchedMovies", userId);
+    const watchedDocRef = doc(db, "userWatchedMovies", userId); // Path uses userId
     const docSnap = await getDoc(watchedDocRef);
     if (docSnap.exists()) {
       const existingMovies = docSnap.data().movies as Movie[];
@@ -144,6 +174,11 @@ export const addWatchedMovieToFirestore = async (
   }
 };
 
+/**
+ * Loads the watched movies list from Firestore for a specific user.
+ * @param userId - The ID of the authenticated user.
+ * @returns A promise that resolves to an array of Movie objects.
+ */
 export const loadWatchedMoviesFromFirestore = async (
   userId: string
 ): Promise<Movie[]> => {
@@ -152,7 +187,7 @@ export const loadWatchedMoviesFromFirestore = async (
     return [];
   }
   try {
-    const watchedDocRef = doc(db, "userWatchedMovies", userId);
+    const watchedDocRef = doc(db, "userWatchedMovies", userId); // Path uses userId
     const docSnap = await getDoc(watchedDocRef);
 
     if (docSnap.exists()) {
@@ -175,6 +210,11 @@ export const loadWatchedMoviesFromFirestore = async (
   }
 };
 
+/**
+ * Removes a specific movie from the watched list in Firestore for a specific user.
+ * @param userId - The ID of the authenticated user.
+ * @param movieId - The ID of the movie to remove.
+ */
 export const removeWatchedMovieFromFirestore = async (
   userId: string,
   movieId: string
@@ -182,7 +222,7 @@ export const removeWatchedMovieFromFirestore = async (
   if (!userId)
     throw new Error("User ID is required to remove a watched movie.");
   try {
-    const watchedDocRef = doc(db, "userWatchedMovies", userId);
+    const watchedDocRef = doc(db, "userWatchedMovies", userId); // Path uses userId
     const docSnap = await getDoc(watchedDocRef);
 
     if (docSnap.exists()) {
@@ -208,5 +248,60 @@ export const removeWatchedMovieFromFirestore = async (
       error
     );
     throw error;
+  }
+};
+
+/**
+ * Creates a user profile document in Firestore.
+ * Checks if the username is already taken (case-insensitive).
+ * @param userId - The Firebase Auth UID.
+ * @param email - The user's email.
+ * @param username - The desired username.
+ * @returns A promise resolving to an object with success status and optional message.
+ */
+export const createUserProfile = async (
+  userId: string,
+  email: string,
+  username: string
+): Promise<{ success: boolean; message?: string }> => {
+  if (!userId || !email || !username) {
+    return {
+      success: false,
+      message: "User ID, email, and username are required.",
+    };
+  }
+
+  const usersRef = collection(db, "users");
+  const q = query(
+    usersRef,
+    where("username_lowercase", "==", username.toLowerCase())
+  );
+
+  try {
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      return {
+        success: false,
+        message: "Username already taken. Please choose another one.",
+      };
+    }
+
+    const userProfileDocRef = doc(db, "users", userId);
+    await setDoc(userProfileDocRef, {
+      email: email,
+      username: username,
+      username_lowercase: username.toLowerCase(), // For case-insensitive unique checks
+      createdAt: new Date(),
+    });
+    console.log(
+      `User profile created for user: ${userId} with username: ${username}`
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Error creating user profile:", error);
+    return {
+      success: false,
+      message: "Error creating user profile. Please try again.",
+    };
   }
 };
